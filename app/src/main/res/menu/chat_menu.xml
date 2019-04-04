@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item android:title="Leave chat"
+        app:showAsAction="never"
+        android:id="@+id/leave_chat"/>
+    <item android:title="Add member"
+        app:showAsAction="never"
+        android:id="@+id/add_member"/>
+    <item android:title="Create Event"
+        app:showAsAction="never"
+        android:id="@+id/create_event"/>
+    <item android:title="Calendar"
+        app:showAsAction="never"
+        android:id="@+id/calendar"/>
+</menu>
