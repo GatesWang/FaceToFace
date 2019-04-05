@@ -276,8 +276,9 @@ public class ActivitySignIn extends Activity implements
 
         Intent i = new Intent(ActivitySignIn.this, ActivityChatList.class);
         User person = new User(user);
+        person.setNumber(user.getPhoneNumber());
         Bundle bundle = new Bundle();
-        bundle.putSerializable("bundle", person);
+        bundle.putSerializable("person", person);
         i.putExtras(bundle);
         startActivity(i);
         finish();

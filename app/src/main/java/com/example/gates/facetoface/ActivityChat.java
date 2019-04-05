@@ -13,6 +13,7 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -23,21 +24,34 @@ import com.firebase.ui.database.FirebaseListOptions;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class ActivityChat extends AppCompatActivity {
 
     private User person;
     private String chatName;
     private Uri uri;
-    private FirebaseListAdapter<ChatMessage> adapter;
-    private ListView listOfMessages;
+    private MessageAdapter messagesAdapter;
+    private ArrayList<ChatMessage> messagesArrayList;
+    private ListView messagesListView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
+
+        messagesArrayList = new ArrayList<ChatMessage>();
+        messagesListView = (ListView) findViewById(R.id.list_of_messages);
+        messagesAdapter = new MessageAdapter(messagesArrayList,ActivityChat.this);
+        messagesListView.setAdapter(messagesAdapter);
 
         getUserInfo();
         displayChatMessages();
@@ -57,10 +71,9 @@ public class ActivityChat extends AppCompatActivity {
                         .push()
                         .setValue(new ChatMessage(
                                 input.getText().toString(),
-                                FirebaseAuth.getInstance().getCurrentUser().getDisplayName())
-                        );
+                                person.getName()));
 
-                Log.d(">>>", ""+chatName);
+                Log.d(">>>", ""+person.getName());
                 // Clear the input
                 input.setText("");
             }
@@ -97,7 +110,31 @@ public class ActivityChat extends AppCompatActivity {
     }
 
     private void displayChatMessages() {
+        //only display last 20 messages
+        messagesArrayList.clear();
+        //only get chats of the current user
+        final String id = person.getId();
+        DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages").child(chatName);
+        database.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot childSnap : dataSnapshot.getChildren()) {
+                    ArrayList<String> temp = new ArrayList<String>();
+                    for(DataSnapshot d : childSnap.getChildren()){
+                        temp.add(d.getValue().toString());
+                    }
+                    ChatMessage chatMessage = new ChatMessage(temp.get(0), temp.get(2), Long.parseLong(temp.get(1)));
+                    messagesArrayList.add(chatMessage);
+                    Log.d(">>>", "" + messagesArrayList);
+                }
+                messagesAdapter = new MessageAdapter(messagesArrayList,ActivityChat.this);
+                messagesListView.setAdapter(messagesAdapter);
+            }
+            @Override
+            public void onCancelled(DatabaseError error) {
 
+            }
+        });
     }
 
     @Override
@@ -126,7 +163,7 @@ public class ActivityChat extends AppCompatActivity {
 
     private void getUserInfo(){
         Intent intent = getIntent();
-        person = (User) intent.getSerializableExtra("bundle");
+        person = (User) intent.getSerializableExtra("person");
         chatName = (String) intent.getStringExtra("chat");
     }
 

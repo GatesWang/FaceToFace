@@ -11,11 +11,11 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-public class MemberAdapter extends BaseAdapter implements ListAdapter {
+public class NewMemberAdapter extends BaseAdapter implements ListAdapter {
     private ArrayList<String> list = new ArrayList<String>();
     private Context context;
 
-    public MemberAdapter(ArrayList<String> list, Context context) {
+    public NewMemberAdapter(ArrayList<String> list, Context context) {
         this.list = list;
         this.context = context;
     }
@@ -41,7 +41,7 @@ public class MemberAdapter extends BaseAdapter implements ListAdapter {
         View view = convertView;
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            view = inflater.inflate(R.layout.member_layout, null);
+            view = inflater.inflate(R.layout.member, null);
         }
 
         //Handle TextView and display string from your list

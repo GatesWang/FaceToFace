@@ -16,6 +16,15 @@ public class ChatMessage {
         this.messageTime = new Date().getTime();
     }
 
+    public ChatMessage(String messageText, String messageUser, long messageTime) {
+        this.messageText = messageText;
+        this.messageUser = messageUser;
+        this.messageTime = messageTime;
+
+        // Initialize to current time
+        this.messageTime = new Date().getTime();
+    }
+
     public ChatMessage(){
 
     }
@@ -31,4 +40,8 @@ public class ChatMessage {
         return messageTime;
     }
 
+    @Override
+    public String toString() {
+        return "message " + messageText + " user " + messageUser + " time " + messageTime;
+    }
 }

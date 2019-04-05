@@ -11,7 +11,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
-import android.support.constraint.solver.widgets.Snapshot;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -28,7 +27,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
@@ -61,8 +59,11 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private Button newChatButton;
     private FirebaseUser user;
 
+    private NewMemberAdapter newMemberAdapter;
     private ArrayAdapter<String> potentialMemberAdapter;
     private ArrayList<String> members;
+
+    private Container tempValue = new Container("a");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,18 +108,42 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 newMemberInput.setHint("Phone number");
 
                 members = new ArrayList<>();
-                final MemberAdapter memberAdapter = new MemberAdapter(members, getApplicationContext());
-                membersListView.setAdapter(memberAdapter);
-
+                newMemberAdapter = new NewMemberAdapter(members, getApplicationContext());
+                membersListView.setAdapter(newMemberAdapter);
 
                 newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
-                        String newMemberString = newMemberInput.getText().toString();
+                        final String newMemberString = newMemberInput.getText().toString();
                         if(newMemberString.length()>0) {
-                            members.add(newMemberString);
-                            memberAdapter.notifyDataSetChanged();
-                            newMemberInput.setText("");
+                            //selfadd
+
+                            //test to see if this user is already in the database
+                            String[] info = newMemberString.split("\\s+");
+                            final String phoneNumber = info[1] + info[2].replaceAll("-","");
+                            DatabaseReference database = FirebaseDatabase.getInstance().getReference().child("users");
+                            database.addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                    boolean inDatabase = false;
+                                    for(DataSnapshot user: dataSnapshot.getChildren()){
+                                        if(user.child("number").getValue().equals(phoneNumber)){
+                                            members.add(newMemberString);
+                                            newMemberAdapter.notifyDataSetChanged();
+                                            newMemberInput.setText("");
+                                            inDatabase = true;
+                                        }
+                                    }
+                                    if(!inDatabase){
+                                        Toast.makeText(ActivityChatList.this,"This user is not registered for the app", Toast.LENGTH_LONG).show();
+                                        newMemberInput.setText("");
+                                    }
+                                }
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                }
+                            });
                         }
                     }
                 });
@@ -138,21 +163,58 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 builderChat.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String chatName = chatNameEditText.getText().toString();
-                        FirebaseDatabase.getInstance()
-                                .getReference()
-                                .child("members")
-                                .child(chatName)
-                                .push()
-                                .setValue(person.getId());
+                        final String chatName = chatNameEditText.getText().toString();
+                        //make sure it is a unique chat name
 
-                        FirebaseDatabase.getInstance()
-                                .getReference()
-                                .child("messages")
-                                .child(chatName)
-                                .setValue(true);
+                        if(members.size()<1){
+                            Toast.makeText(ActivityChatList.this, "There needs to be at least one other member", Toast.LENGTH_SHORT).show();
+                            dialog.dismiss();
+                        }
+                        else{
+                            FirebaseDatabase.getInstance()
+                                    .getReference()
+                                    .child("members")
+                                    .child(chatName)
+                                    .push()
+                                    .setValue(person.getId());
 
-                        displayChats();
+                            FirebaseDatabase.getInstance()
+                                    .getReference()
+                                       .child("messages")
+                                    .child(chatName)
+                                    .setValue(true);
+
+                            for(String member : members){
+                                String[] memberInfo = member.split("\\s+");
+                                final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-","");
+
+                                DatabaseReference database = FirebaseDatabase.getInstance().getReference().child("users");
+                                database.addListenerForSingleValueEvent(new ValueEventListener() {
+                                    @Override
+                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                        for(DataSnapshot user: dataSnapshot.getChildren()){
+                                            if(user.child("number").getValue().toString().equals(newMemberPhoneNumber)){
+                                                String newMemberId = user.child("id").getValue().toString();
+                                                FirebaseDatabase.getInstance()
+                                                        .getReference()
+                                                        .child("members")
+                                                        .child(chatName)
+                                                        .push()
+                                                        .setValue(newMemberId);
+                                            }
+                                        }
+                                    }
+
+                                    @Override
+                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                    }
+                                });
+                                String newMemberId = tempValue.getValue();
+                            }
+
+                            displayChats();
+                        }
                     }
                 });
 
@@ -168,7 +230,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
 
     }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
@@ -177,7 +238,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         }
     }
-
     private boolean mayRequestContacts() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
             return true;
@@ -190,7 +250,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         }
         return false;
     }
-
     private ArrayList<String> getContactNames(){
         if (!mayRequestContacts()) {
             Log.d("ccc", "no cant get contacts");
@@ -211,7 +270,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                         new String[]{id}, null);
                 while (cur1.moveToNext()) {
                     //to get the contact names
-                    String name=cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                    String name = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
                     String number = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
                     PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
                     try {
@@ -230,18 +289,15 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         names = new ArrayList<String>(set);
         return names;
     }
-
     @Override
     protected void onStart() {
         super.onStart();
         displayChats();
     }
-
     @Override
     protected void onStop() {
         super.onStop();
     }
-
     private void displayChats(){
         chatsArrayList.clear();
         //only get chats of the current user
@@ -267,28 +323,24 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         });
     }
-
     private void goToChat(User person, Chat chat){
         Intent intent = new Intent(ActivityChatList.this, ActivityChat.class);
         intent.putExtra("person", person);
         intent.putExtra("chat", chat.getChatName());
         startActivity(intent);
     }
-
     private void getUserInfo(){
-        person = (User) getIntent().getSerializableExtra("bundle");
+        person = (User) getIntent().getSerializableExtra("person");
         number = person.getNumber();
         id = person.getId();
         addUserToDatabase(person);
     }
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
         inflater.inflate(R.menu.chat_list_menu, menu);
         return true;
     }
-
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
@@ -331,12 +383,14 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             public void onDataChange(DataSnapshot dataSnapshot) {
                 boolean registered = false;
                 for(DataSnapshot data: dataSnapshot.getChildren()){
-                    if (data.child(person.getId()).exists()) {
+                    if (data.getKey().equals(person.getId())) {
                         registered = true;
+                        person.setName(data.child("name").getValue().toString());
+                        getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
                     }
                 }
                 if(!registered){
-                    registerUser(person);
+                    createDialogs();
                 }
             }
 
@@ -345,10 +399,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
             }
         });
-    }
-
-    private void registerUser(User person){
-        createDialogs();
     }
     private void createDialogs(){
         final AlertDialog.Builder builder1 = new AlertDialog.Builder(ActivityChatList.this);
@@ -387,6 +437,11 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             public void onClick(DialogInterface dialog, int which) {
                 //set name String
                 person.setName(nameLabel.getText().toString());
+                FirebaseDatabase.getInstance()
+                        .getReference()
+                        .child("users")
+                        .child(person.getId())
+                        .setValue(person);
                 dialog.dismiss();
             }
         });
