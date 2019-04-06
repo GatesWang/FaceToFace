@@ -37,7 +37,6 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.Query;
 import com.google.firebase.database.ValueEventListener;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
@@ -59,11 +58,9 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private Button newChatButton;
     private FirebaseUser user;
 
-    private NewMemberAdapter newMemberAdapter;
+    private AdapterNewMember adapterNewMember;
     private ArrayAdapter<String> potentialMemberAdapter;
     private ArrayList<String> members;
-
-    private Container tempValue = new Container("a");
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,28 +105,35 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 newMemberInput.setHint("Phone number");
 
                 members = new ArrayList<>();
-                newMemberAdapter = new NewMemberAdapter(members, getApplicationContext());
-                membersListView.setAdapter(newMemberAdapter);
-
+                adapterNewMember = new AdapterNewMember(members, getApplicationContext());
+                membersListView.setAdapter(adapterNewMember);
                 newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
+                        boolean doubleAdd = false;
                         final String newMemberString = newMemberInput.getText().toString();
                         if(newMemberString.length()>0) {
-                            //selfadd
-
-                            //test to see if this user is already in the database
+                            //checks to see if member is proper
                             String[] info = newMemberString.split("\\s+");
                             final String phoneNumber = info[1] + info[2].replaceAll("-","");
-                            DatabaseReference database = FirebaseDatabase.getInstance().getReference().child("users");
-                            database.addListenerForSingleValueEvent(new ValueEventListener() {
+                            DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
+                            databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
                                 @Override
                                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                     boolean inDatabase = false;
+
                                     for(DataSnapshot user: dataSnapshot.getChildren()){
                                         if(user.child("number").getValue().equals(phoneNumber)){
+                                            //cant self add
+                                            if(phoneNumber.equals(person.getNumber())){
+                                                Toast.makeText(ActivityChatList.this, "You cannot add yourself, you are automatically added", Toast.LENGTH_SHORT).show();
+                                                inDatabase = true;
+                                                newMemberInput.setText("");
+                                                break;
+                                            }
+                                            //user is already in database, good
                                             members.add(newMemberString);
-                                            newMemberAdapter.notifyDataSetChanged();
+                                            adapterNewMember.notifyDataSetChanged();
                                             newMemberInput.setText("");
                                             inDatabase = true;
                                         }
@@ -138,6 +142,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                         Toast.makeText(ActivityChatList.this,"This user is not registered for the app", Toast.LENGTH_LONG).show();
                                         newMemberInput.setText("");
                                     }
+
                                 }
                                 @Override
                                 public void onCancelled(@NonNull DatabaseError databaseError) {
@@ -162,34 +167,41 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 // Set up the buttons
                 builderChat.setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        final String chatName = chatNameEditText.getText().toString();
-                        //make sure it is a unique chat name
-
-                        if(members.size()<1){
+                    public void onClick(final DialogInterface dialog, int which) {
+                        final String chatNameNew = chatNameEditText.getText().toString().trim();
+                        boolean chatExists = false;
+                        for(Chat chat: chatsArrayList){
+                            if(chat.getChatName().equals(chatNameNew)){
+                                chatExists = true;
+                            }
+                        }
+                        if(chatExists){
+                            Toast.makeText(ActivityChatList.this, "That chat already exists", Toast.LENGTH_SHORT).show();
+                            chatNameEditText.setText("");
+                        }
+                        else if(members.size()<1){
                             Toast.makeText(ActivityChatList.this, "There needs to be at least one other member", Toast.LENGTH_SHORT).show();
-                            dialog.dismiss();
                         }
                         else{
                             FirebaseDatabase.getInstance()
                                     .getReference()
                                     .child("members")
-                                    .child(chatName)
+                                    .child(chatNameNew)
                                     .push()
                                     .setValue(person.getId());
 
                             FirebaseDatabase.getInstance()
                                     .getReference()
                                        .child("messages")
-                                    .child(chatName)
+                                    .child(chatNameNew)
                                     .setValue(true);
 
                             for(String member : members){
                                 String[] memberInfo = member.split("\\s+");
                                 final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-","");
 
-                                DatabaseReference database = FirebaseDatabase.getInstance().getReference().child("users");
-                                database.addListenerForSingleValueEvent(new ValueEventListener() {
+                                DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
+                                databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                         for(DataSnapshot user: dataSnapshot.getChildren()){
@@ -198,7 +210,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                                 FirebaseDatabase.getInstance()
                                                         .getReference()
                                                         .child("members")
-                                                        .child(chatName)
+                                                        .child(chatNameNew)
                                                         .push()
                                                         .setValue(newMemberId);
                                             }
@@ -210,7 +222,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
                                     }
                                 });
-                                String newMemberId = tempValue.getValue();
                             }
 
                             displayChats();
@@ -302,8 +313,8 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         chatsArrayList.clear();
         //only get chats of the current user
         final String uid = user.getUid();
-        DatabaseReference database = FirebaseDatabase.getInstance().getReference("members");
-        database.addListenerForSingleValueEvent(new ValueEventListener() {
+        DatabaseReference databaseMembers = FirebaseDatabase.getInstance().getReference("members");
+        databaseMembers.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot childSnap : dataSnapshot.getChildren()) {

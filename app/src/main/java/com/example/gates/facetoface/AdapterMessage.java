@@ -10,11 +10,11 @@ import android.widget.TextView;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-public class MessageAdapter extends BaseAdapter implements ListAdapter {
+public class AdapterMessage extends BaseAdapter implements ListAdapter {
     private ArrayList<ChatMessage> list = new ArrayList();
     private Context context;
 
-    public MessageAdapter(ArrayList<ChatMessage> list, Context context) {
+    public AdapterMessage(ArrayList<ChatMessage> list, Context context) {
         this.list = list;
         this.context = context;
     }
