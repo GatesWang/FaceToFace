@@ -1,7 +1,6 @@
 package com.example.gates.facetoface;
 
 import android.content.Intent;
-
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -46,6 +45,8 @@ public class ActivityChat extends AppCompatActivity {
         messagesListView.setAdapter(messagesAdapter);
 
         getUserInfo();
+        getSupportActionBar().setTitle(chatName);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         displayChatMessages();
 
         FloatingActionButton fab =
@@ -55,19 +56,26 @@ public class ActivityChat extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 EditText input = (EditText)findViewById(R.id.message_input);
+                String inputText = input.getText().toString();
 
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("messages")
-                        .child(chatName)
-                        .push()
-                        .setValue(new ChatMessage(
-                                input.getText().toString(),
-                                person.getName()));
+                if(inputText.trim().equals("")){
+                    Toast.makeText(ActivityChat.this, "Input must contain text", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    FirebaseDatabase.getInstance()
+                            .getReference()
+                            .child("messages")
+                            .child(chatName)
+                            .push()
+                            .setValue(new ChatMessage(
+                                    inputText,
+                                    person.getName()));
 
-                Log.d(">>>", ""+person.getName());
-                // Clear the input
-                input.setText("");
+                    Log.d(">>>", ""+person.getName());
+                    // Clear the input
+                    input.setText("");
+                    displayChatMessages();
+                }
             }
         });
     }
@@ -104,8 +112,8 @@ public class ActivityChat extends AppCompatActivity {
     private void displayChatMessages() {
         //only display last 20 messages
         messagesArrayList.clear();
-        //only get chats of the current user
         final String id = person.getId();
+        //get messages of this chat
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages").child(chatName);
         database.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -141,6 +149,9 @@ public class ActivityChat extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
             case R.id.menu_sign_out:
                 signOut();
                 return true;

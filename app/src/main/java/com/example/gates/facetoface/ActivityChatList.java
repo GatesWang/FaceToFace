@@ -239,7 +239,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         });
 
-
     }
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -358,6 +357,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         switch (item.getItemId()) {
             case R.id.menu_sign_out:
                 signOut();
+                return true;
             case R.id.event_calendar:
                 goToEventCalendar();
                 return true;
@@ -401,7 +401,8 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                     }
                 }
                 if(!registered){
-                    createDialogs();
+                    Intent registerIntent = new Intent(ActivityChatList.this, ActivityRegister.class);
+                    startActivityForResult(registerIntent, 1);
                 }
             }
 
@@ -412,59 +413,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         });
     }
     private void createDialogs(){
-        final AlertDialog.Builder builder1 = new AlertDialog.Builder(ActivityChatList.this);
-        LinearLayout layout = new LinearLayout(ActivityChatList.this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        final EditText nameLabel = new EditText(ActivityChatList.this);
-        layout.addView(nameLabel);
-        builder1.setView(layout);
-        builder1.setCancelable(false);
-        builder1.setTitle("Enter your name");
 
-        final AlertDialog.Builder builder2 = new AlertDialog.Builder(ActivityChatList.this);
-        LinearLayout layout2 = new LinearLayout(ActivityChatList.this);
-        layout2.setOrientation(LinearLayout.VERTICAL);
-        builder2.setView(layout2);
-        builder2.setCancelable(false);
-        builder2.setTitle("Need to enter name to continue");
-        builder2.setPositiveButton("Try again", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-                createDialogs();
-            }
-        });
-
-        builder2.setNegativeButton("Close app", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                finish();
-            }
-        });
-        final AlertDialog alert2 = builder2.create();
-
-        builder1.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                //set name String
-                person.setName(nameLabel.getText().toString());
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("users")
-                        .child(person.getId())
-                        .setValue(person);
-                dialog.dismiss();
-            }
-        });
-
-        builder1.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                alert2.show();
-            }
-        });
-
-        builder1.show();
     }
 
 }
