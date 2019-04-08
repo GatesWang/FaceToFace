@@ -23,6 +23,9 @@ import android.widget.Toast;
 import com.bumptech.glide.Glide;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -33,38 +36,53 @@ import java.io.ByteArrayOutputStream;
 public class ActivityRegister extends Activity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     static final int GET_FROM_GALLERY = 2;
-    static final int PIC_CROP = 3;
+
+    private EditText nameInput;
+    private Button registerButton;
     private ImageView imageView;
     private Bitmap bitmap;
+
+    private boolean pictureChanged = false;
+
     private Uri uri;
     private StorageReference imageRef;
+    private String name;
+
+    @Override
+    public void onBackPressed() {
+
+    }
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getActionBar().setTitle("Register");
+        return super.onCreateOptionsMenu(menu);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_register);
         imageView = findViewById(R.id.new_profile_picture);
-
+        nameInput = findViewById(R.id.name_input);
+        registerButton = findViewById(R.id.register_button);
         imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 giveOption();
             }
         });
-        /*
-        Glide.with(this)
-                .load("https://www.shareicon.net/data/128x128/2017/05/24/886427_camera_512x512.png")
-                .into(imageView);
-                */
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getActionBar().setTitle("Register");
-        return super.onCreateOptionsMenu(menu);
+        registerButton.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v) {
+                validateAccount();
+            }
+        });
     }
     private void giveOption(){
         //gives option between taking picture and uploading picture
         AlertDialog.Builder builder1 = new AlertDialog.Builder(ActivityRegister.this);
+        final AlertDialog alert1 = builder1.create();
+
         LinearLayout layout = new LinearLayout(ActivityRegister.this);
         layout.setOrientation(LinearLayout.HORIZONTAL);
         Button takePicture = new Button(ActivityRegister.this);
@@ -73,6 +91,7 @@ public class ActivityRegister extends Activity {
             @Override
             public void onClick(View v) {
                 takePicture();
+                alert1.dismiss();
             }
         });
         Button uploadPicture = new Button(ActivityRegister.this);
@@ -81,13 +100,14 @@ public class ActivityRegister extends Activity {
             @Override
             public void onClick(View v) {
                 uploadPicture();
+                alert1.dismiss();
             }
         });
         layout.addView(takePicture);
         layout.addView(uploadPicture);
-        builder1.setView(layout);
-        builder1.setTitle("New profile picture");
-        builder1.show();
+        alert1.setView(layout);
+        alert1.setTitle("New profile picture");
+        alert1.show();
 
     }
     private void takePicture(){
@@ -100,41 +120,39 @@ public class ActivityRegister extends Activity {
         Intent uploadPictureIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
         startActivityForResult(uploadPictureIntent, GET_FROM_GALLERY);
     }
-    private void storeImage(){
-        //the image we want needs to be stored in imageView
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        StorageReference storageRef = storage.getReference();
-        imageRef = storageRef.child("images");
-        Bitmap bitmap = ((BitmapDrawable) imageView.getDrawable()).getBitmap();
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
-        byte[] data = baos.toByteArray();
-
-        UploadTask uploadTask = imageRef.putBytes(data);
-        uploadTask.addOnFailureListener(new OnFailureListener() {
-            @Override
-            public void onFailure(@NonNull Exception exception) {
-
-            }
-        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-            @Override
-            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
-
-
-            }
-        });
-    }
     private void validateAccount(){
-
+        //make sure picture is valid
+        if(!pictureChanged){
+            Toast.makeText(getApplicationContext(), "You must add a picture", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        //make sure name is valid
+        name = nameInput.getText().toString().trim();
+        if(name.equals("")){
+            Toast.makeText(getApplicationContext(), "You must enter a name", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        createAccount();
     }
     private void createAccount(){
-
+        //enter details into firebase
+        DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
+        FirebaseUser user =  FirebaseAuth.getInstance().getCurrentUser();
+        String id = user.getUid();
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
+        byte[] byteArray = byteArrayOutputStream .toByteArray();
+        String encoded = Base64.encodeToString(byteArray, Base64.DEFAULT);
+        User newUser = new User(user);
+        newUser.setName(name);
+        newUser.setImageB64(encoded);
+        databaseUsers.child(id).setValue(newUser);
+        finish();
     }
     private void resizeBitmap(){
         float aspectRatio = bitmap.getWidth() /
                 (float) bitmap.getHeight();
-        int width = 480;
+        int width = 800;
         int height = Math.round(width / aspectRatio);
 
         bitmap = Bitmap.createScaledBitmap(
@@ -148,71 +166,19 @@ public class ActivityRegister extends Activity {
             bitmap = (Bitmap) extras.get("data");
             resizeBitmap();
             imageView.setImageBitmap(bitmap);
+            pictureChanged = true;
         }
         else if (requestCode == GET_FROM_GALLERY && resultCode == RESULT_OK) {
             try {
                 bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), data.getData());
                 resizeBitmap();
                 imageView.setImageBitmap(bitmap);
+                pictureChanged = true;
             }
             catch(Exception e){
                 e.printStackTrace();
             }
         }
     }
-    /*
-    final AlertDialog.Builder builder1 = new AlertDialog.Builder(ActivityChatList.this);
-    LinearLayout layout = new LinearLayout(ActivityChatList.this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-    final EditText nameLabel = new EditText(ActivityChatList.this);
-        layout.addView(nameLabel);
-        builder1.setView(layout);
-        builder1.setCancelable(false);
-        builder1.setTitle("Enter your name");
 
-    final AlertDialog.Builder builder2 = new AlertDialog.Builder(ActivityChatList.this);
-    LinearLayout layout2 = new LinearLayout(ActivityChatList.this);
-        layout2.setOrientation(LinearLayout.VERTICAL);
-        builder2.setView(layout2);
-        builder2.setCancelable(false);
-        builder2.setTitle("Need to enter name to continue");
-        builder2.setPositiveButton("Try again", new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            dialog.dismiss();
-            createDialogs();
-        }
-    });
-
-        builder2.setNegativeButton("Close app", new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            finish();
-        }
-    });
-    final AlertDialog alert2 = builder2.create();
-
-        builder1.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            //set name String
-            person.setName(nameLabel.getText().toString());
-            FirebaseDatabase.getInstance()
-                    .getReference()
-                    .child("users")
-                    .child(person.getId())
-                    .setValue(person);
-            dialog.dismiss();
-        }
-    });
-
-        builder1.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-        @Override
-        public void onClick(DialogInterface dialog, int which) {
-            alert2.show();
-        }
-    });
-
-        builder1.show();
-        */
 }

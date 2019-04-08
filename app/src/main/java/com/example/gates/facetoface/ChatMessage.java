@@ -6,6 +6,7 @@ public class ChatMessage {
 
     private String messageText;
     private String messageUser;
+    private String messageImage;
     private long messageTime;
 
     public ChatMessage(String messageText, String messageUser) {
@@ -28,6 +29,12 @@ public class ChatMessage {
     public ChatMessage(){
 
     }
+    public void setImage(String messageImage){
+        this.messageImage = messageImage;
+    }
+    public String getImage(){
+        return messageImage;
+    }
     public String getMessageText() {
         return messageText;
     }
@@ -42,6 +49,6 @@ public class ChatMessage {
 
     @Override
     public String toString() {
-        return "message " + messageText + " user " + messageUser + " time " + messageTime;
+        return "message " + messageText + " user " + messageUser + " time " + messageTime  + " image " + messageImage ;
     }
 }

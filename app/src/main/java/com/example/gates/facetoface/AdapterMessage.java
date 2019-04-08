@@ -1,10 +1,15 @@
 package com.example.gates.facetoface;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.provider.ContactsContract;
+import android.util.Base64;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 import java.util.ArrayList;
@@ -46,15 +51,20 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
         String message = chatMessage.getMessageText();
         String user = chatMessage.getMessageUser();
         long time = chatMessage.getMessageTime();
+        byte[] byteImage =  Base64.decode(chatMessage.getImage(), Base64.DEFAULT);
+        Bitmap bitmap = BitmapFactory.decodeByteArray(byteImage, 0, byteImage.length);
 
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(time);
         String date = "" + c.getTime();
-        //Handle TextView and display string from your list
+
+        //start loading the views
         TextView messageTextView = (TextView)view.findViewById(R.id.message_text);
+        ImageView userImage = (ImageView) view.findViewById(R.id.user_image);
         TextView userTextView = (TextView)view.findViewById(R.id.message_user);
         TextView timeTextView = (TextView)view.findViewById(R.id.message_time);
 
+        userImage.setImageBitmap(bitmap);
         messageTextView.setText(message);
         userTextView.setText(user);
         timeTextView.setText(date);

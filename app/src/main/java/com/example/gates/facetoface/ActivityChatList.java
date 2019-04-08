@@ -396,12 +396,15 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 for(DataSnapshot data: dataSnapshot.getChildren()){
                     if (data.getKey().equals(person.getId())) {
                         registered = true;
+                        Log.d(">>>", "person");
                         person.setName(data.child("name").getValue().toString());
+                        person.setImageB64(data.child("imageB64").getValue().toString());
                         getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
                     }
                 }
                 if(!registered){
                     Intent registerIntent = new Intent(ActivityChatList.this, ActivityRegister.class);
+                    registerIntent.putExtra("person", person);
                     startActivityForResult(registerIntent, 1);
                 }
             }

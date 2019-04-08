@@ -62,16 +62,17 @@ public class ActivityChat extends AppCompatActivity {
                     Toast.makeText(ActivityChat.this, "Input must contain text", Toast.LENGTH_SHORT).show();
                 }
                 else{
+                    //now each chat message has a picture
+                    String image = person.getImageB64();
+                    ChatMessage chatMessage = new ChatMessage(inputText, person.getName());
+                    chatMessage.setImage(person.getImageB64());
                     FirebaseDatabase.getInstance()
                             .getReference()
                             .child("messages")
                             .child(chatName)
                             .push()
-                            .setValue(new ChatMessage(
-                                    inputText,
-                                    person.getName()));
+                            .setValue(chatMessage);
 
-                    Log.d(">>>", ""+person.getName());
                     // Clear the input
                     input.setText("");
                     displayChatMessages();
@@ -123,9 +124,10 @@ public class ActivityChat extends AppCompatActivity {
                     for(DataSnapshot d : childSnap.getChildren()){
                         temp.add(d.getValue().toString());
                     }
-                    ChatMessage chatMessage = new ChatMessage(temp.get(0), temp.get(2), Long.parseLong(temp.get(1)));
+                    ChatMessage chatMessage = new ChatMessage(temp.get(1), temp.get(3), Long.parseLong(temp.get(2)));
+                    chatMessage.setImage(temp.get(0));
                     messagesArrayList.add(chatMessage);
-                    Log.d(">>>", "" + messagesArrayList);
+                    //Log.d(">>>", "" + messagesArrayList);
                 }
                 messagesAdapter = new AdapterMessage(messagesArrayList,ActivityChat.this);
                 messagesListView.setAdapter(messagesAdapter);

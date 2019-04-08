@@ -273,7 +273,6 @@ public class ActivitySignIn extends Activity implements
     }
 
     private void goToChatList(FirebaseUser user){
-
         Intent i = new Intent(ActivitySignIn.this, ActivityChatList.class);
         User person = new User(user);
         person.setNumber(user.getPhoneNumber());
