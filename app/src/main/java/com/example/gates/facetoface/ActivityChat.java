@@ -1,9 +1,13 @@
 package com.example.gates.facetoface;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -12,17 +16,25 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class ActivityChat extends AppCompatActivity {
@@ -41,7 +53,6 @@ public class ActivityChat extends AppCompatActivity {
 
         messagesArrayList = new ArrayList<ChatMessage>();
         messagesListView = (ListView) findViewById(R.id.list_of_messages);
-        messagesAdapter = new AdapterMessage(messagesArrayList,ActivityChat.this);
         messagesListView.setAdapter(messagesAdapter);
 
         getUserInfo();
@@ -63,9 +74,7 @@ public class ActivityChat extends AppCompatActivity {
                 }
                 else{
                     //now each chat message has a picture
-                    String image = person.getImageB64();
-                    ChatMessage chatMessage = new ChatMessage(inputText, person.getName());
-                    chatMessage.setImage(person.getImageB64());
+                    ChatMessage chatMessage = new ChatMessage(inputText, person.getName(), person.getId());
                     FirebaseDatabase.getInstance()
                             .getReference()
                             .child("messages")
@@ -113,23 +122,25 @@ public class ActivityChat extends AppCompatActivity {
     private void displayChatMessages() {
         //only display last 20 messages
         messagesArrayList.clear();
-        final String id = person.getId();
         //get messages of this chat
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages").child(chatName);
         database.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot childSnap : dataSnapshot.getChildren()) {
-                    ArrayList<String> temp = new ArrayList<String>();
+                    ArrayList<String> temp = new ArrayList<>();
                     for(DataSnapshot d : childSnap.getChildren()){
                         temp.add(d.getValue().toString());
                     }
-                    ChatMessage chatMessage = new ChatMessage(temp.get(1), temp.get(3), Long.parseLong(temp.get(2)));
-                    chatMessage.setImage(temp.get(0));
+                    String text = temp.get(0);
+                    long time = Long.parseLong(temp.get(1));
+                    String user = temp.get(2);
+                    String id = temp.get(3);
+
+                    ChatMessage chatMessage = new ChatMessage(text, user, id, time);
                     messagesArrayList.add(chatMessage);
-                    //Log.d(">>>", "" + messagesArrayList);
                 }
-                messagesAdapter = new AdapterMessage(messagesArrayList,ActivityChat.this);
+                messagesAdapter = new AdapterMessage(messagesArrayList, ActivityChat.this);
                 messagesListView.setAdapter(messagesAdapter);
             }
             @Override

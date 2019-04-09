@@ -11,6 +11,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -48,6 +49,7 @@ import static android.Manifest.permission.READ_CONTACTS;
 
 public class ActivityChatList extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback{
     private static final int PERMISSIONS_REQUEST_READ_CONTACTS  = 100;
+    private static final int CREATE_ACCOUNT = 1;
     private ArrayAdapter<Chat> chatsAdapter;
     private ArrayList<Chat> chatsArrayList = new ArrayList<Chat>();
     private ListView chatsListView;
@@ -398,25 +400,28 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                         registered = true;
                         Log.d(">>>", "person");
                         person.setName(data.child("name").getValue().toString());
-                        person.setImageB64(data.child("imageB64").getValue().toString());
                         getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
                     }
                 }
                 if(!registered){
                     Intent registerIntent = new Intent(ActivityChatList.this, ActivityRegister.class);
                     registerIntent.putExtra("person", person);
-                    startActivityForResult(registerIntent, 1);
+                    startActivityForResult(registerIntent, CREATE_ACCOUNT);
                 }
             }
-
             @Override
-            public void onCancelled(DatabaseError direbaseError) {
+            public void onCancelled(DatabaseError databaseError) {
 
             }
         });
     }
-    private void createDialogs(){
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==CREATE_ACCOUNT){
+            person = (User) data.getSerializableExtra("person");
+            getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
+        }
     }
-
 }

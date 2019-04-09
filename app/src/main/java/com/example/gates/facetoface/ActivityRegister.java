@@ -34,8 +34,9 @@ import java.io.ByteArrayOutputStream;
 
 
 public class ActivityRegister extends Activity {
-    static final int REQUEST_IMAGE_CAPTURE = 1;
-    static final int GET_FROM_GALLERY = 2;
+    private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final int GET_FROM_GALLERY = 2;
+    private static final int SUCCESS = 3;
 
     private EditText nameInput;
     private Button registerButton;
@@ -139,14 +140,33 @@ public class ActivityRegister extends Activity {
         DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
         FirebaseUser user =  FirebaseAuth.getInstance().getCurrentUser();
         String id = user.getUid();
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteArrayOutputStream);
-        byte[] byteArray = byteArrayOutputStream .toByteArray();
-        String encoded = Base64.encodeToString(byteArray, Base64.DEFAULT);
         User newUser = new User(user);
+
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference("profile_pictures");
+        StorageReference userRef = storageRef.child(id);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        byte[] data = baos.toByteArray();
+
+        UploadTask uploadTask = userRef.putBytes(data);
+        uploadTask.addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                // Handle unsuccessful uploads
+            }
+        }).addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+            @Override
+            public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                // taskSnapshot.getMetadata() contains file metadata such as size, content-type, etc.
+
+            }
+        });
+
         newUser.setName(name);
-        newUser.setImageB64(encoded);
         databaseUsers.child(id).setValue(newUser);
+        Intent intent=new Intent();
+        intent.putExtra("person",newUser);
+        setResult(SUCCESS,intent);
         finish();
     }
     private void resizeBitmap(){
