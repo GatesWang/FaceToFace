@@ -17,6 +17,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -38,6 +39,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
@@ -51,43 +53,72 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private static final int PERMISSIONS_REQUEST_READ_CONTACTS  = 100;
     private static final int CREATE_ACCOUNT = 1;
     private ArrayAdapter<Chat> chatsAdapter;
-    private ArrayList<Chat> chatsArrayList = new ArrayList<Chat>();
+    private ArrayList<Chat> chatsArrayList = new ArrayList<>();
     private ListView chatsListView;
 
+    private FirebaseUser user;
     private User person;
     private String id;
     private String number;
     private Button newChatButton;
-    private FirebaseUser user;
+    private String newChatKey;
 
     private AdapterNewMember adapterNewMember;
     private ArrayAdapter<String> potentialMemberAdapter;
     private ArrayList<String> members;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat_list);
-
-        chatsListView = (ListView) findViewById(R.id.list_of_chats);
-        chatsAdapter = new ArrayAdapter<Chat>(this, android.R.layout.simple_list_item_1, chatsArrayList);
-        chatsListView.setAdapter(chatsAdapter);
-
-        user = FirebaseAuth.getInstance().getCurrentUser();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+    private boolean mayRequestContacts() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return true;
         }
+        if (ContextCompat.checkSelfPermission(this, READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        }
+         else {
+            this.requestPermissions(new String[]{READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+        }
+        return false;
+    }
+    private ArrayList<String> getContactNames(){
+        if (!mayRequestContacts()) {
+            Log.d("ccc", "no cant get contacts");
+            return null;
+        }
+        Log.d("ccc", "getting contacts");
 
-        getUserInfo();
-
-        chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                Chat chat = chatsAdapter.getItem(position);
-                goToChat(person, chat);
+        ArrayList<String> names = null;
+        HashSet<String> set = new HashSet<String>();
+        ContentResolver cr = getContentResolver();
+        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,null, null, null, null);
+        if (cur.getCount() > 0) {
+            while (cur.moveToNext()) {
+                String id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
+                Cursor cur1 = cr.query(
+                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
+                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
+                        new String[]{id}, null);
+                while (cur1.moveToNext()) {
+                    //to get the contact names
+                    String name = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
+                    String number = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
+                    PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
+                    try {
+                        Phonenumber.PhoneNumber swissNumberProto = phoneUtil.parse(number, "US");
+                        number = phoneUtil.format(swissNumberProto, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
+                    } catch (NumberParseException e) {
+                        System.err.println("NumberParseException was thrown: " + e.toString());
+                    }
+                    if(number!=null){
+                        set.add(name + " " + number);
+                    }
+                }
+                cur1.close();
             }
-        });
-
+        }
+        names = new ArrayList<String>(set);
+        return names;
+    }
+    private void newChatBehavior(){
         newChatButton = findViewById(R.id.new_chat);
         newChatButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -185,48 +216,46 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                             Toast.makeText(ActivityChatList.this, "There needs to be at least one other member", Toast.LENGTH_SHORT).show();
                         }
                         else{
-                            FirebaseDatabase.getInstance()
-                                    .getReference()
-                                    .child("members")
-                                    .child(chatNameNew)
-                                    .push()
-                                    .setValue(person.getId());
-
-                            FirebaseDatabase.getInstance()
-                                    .getReference()
-                                       .child("messages")
-                                    .child(chatNameNew)
-                                    .setValue(true);
-
-                            for(String member : members){
+                            //create the chat object
+                            final ArrayList<String> memberIds = new ArrayList<>();
+                            memberIds.add(id);
+                            for(String member : members) {
                                 String[] memberInfo = member.split("\\s+");
-                                final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-","");
+                                final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-", "");
 
                                 DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
                                 databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
                                     @Override
                                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                        for(DataSnapshot user: dataSnapshot.getChildren()){
-                                            if(user.child("number").getValue().toString().equals(newMemberPhoneNumber)){
-                                                String newMemberId = user.child("id").getValue().toString();
-                                                FirebaseDatabase.getInstance()
+                                        for (DataSnapshot user : dataSnapshot.getChildren()) {
+                                            if (user.child("number").getValue().toString().equals(newMemberPhoneNumber)) {
+                                                String newChatMemberID = user.child("id").getValue().toString();
+                                                memberIds.add(newChatMemberID);
+                                                DatabaseReference newChatReference = FirebaseDatabase.getInstance()
                                                         .getReference()
                                                         .child("members")
-                                                        .child(chatNameNew)
+                                                        .push();
+                                                newChatKey = newChatReference.getKey();
+                                                Chat newChat = new Chat(chatNameNew, newChatKey, memberIds);
+                                                newChatReference.setValue(newChat);
+                                                //create messages object
+                                                Messages messages = new Messages(newChatKey, new ArrayList<ChatMessage>());
+                                                //add this chat to messages
+                                                FirebaseDatabase.getInstance()
+                                                        .getReference()
+                                                        .child("messages")
                                                         .push()
-                                                        .setValue(newMemberId);
+                                                        .setValue(messages);
                                             }
                                         }
                                     }
-
                                     @Override
                                     public void onCancelled(@NonNull DatabaseError databaseError) {
 
                                     }
                                 });
                             }
-
-                            displayChats();
+                            displayChatList();
                         }
                     }
                 });
@@ -242,92 +271,23 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         });
 
     }
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-            }
-        }
-    }
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (ContextCompat.checkSelfPermission(this, READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-         else {
-            this.requestPermissions(new String[]{READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-    private ArrayList<String> getContactNames(){
-        if (!mayRequestContacts()) {
-            Log.d("ccc", "no cant get contacts");
-            return null;
-        }
-        Log.d("ccc", "getting contacts");
-
-        ArrayList<String> names = null;
-        HashSet<String> set = new HashSet<String>();
-        ContentResolver cr = getContentResolver();
-        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,null, null, null, null);
-        if (cur.getCount() > 0) {
-            while (cur.moveToNext()) {
-                String id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
-                Cursor cur1 = cr.query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
-                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                        new String[]{id}, null);
-                while (cur1.moveToNext()) {
-                    //to get the contact names
-                    String name = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-                    String number = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
-                    try {
-                        Phonenumber.PhoneNumber swissNumberProto = phoneUtil.parse(number, "US");
-                        number = phoneUtil.format(swissNumberProto, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
-                    } catch (NumberParseException e) {
-                        System.err.println("NumberParseException was thrown: " + e.toString());
-                    }
-                    if(number!=null){
-                        set.add(name + " " + number);
-                    }
-                }
-                cur1.close();
-            }
-        }
-        names = new ArrayList<String>(set);
-        return names;
-    }
-    @Override
-    protected void onStart() {
-        super.onStart();
-        displayChats();
-    }
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
-    private void displayChats(){
+    private void displayChatList(){
         chatsArrayList.clear();
         //only get chats of the current user
-        final String uid = user.getUid();
         DatabaseReference databaseMembers = FirebaseDatabase.getInstance().getReference("members");
         databaseMembers.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot childSnap : dataSnapshot.getChildren()) {
-                    for(DataSnapshot d : childSnap.getChildren()){
-                        if(d.getValue().equals(uid)) {
-                            Log.d(">>>", ""+ childSnap.getKey());
-                            chatsArrayList.add(new Chat(childSnap.getKey()));
-                        }
+                for (DataSnapshot chat : dataSnapshot.getChildren()) {
+                    GenericTypeIndicator<ArrayList<String>> t = new GenericTypeIndicator<ArrayList<String>>() {};
+                    ArrayList<String> members = (ArrayList<String>) chat.child("memberIds").getValue(t);
+                    if(members.contains(id)) {
+                        chatsArrayList.add((Chat) chat.getValue(Chat.class));
                     }
                 }
                 chatsAdapter = new ArrayAdapter<Chat>(getApplicationContext(), android.R.layout.simple_list_item_1, chatsArrayList);
                 chatsListView.setAdapter(chatsAdapter);
+
             }
             @Override
             public void onCancelled(DatabaseError error) {
@@ -338,7 +298,8 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private void goToChat(User person, Chat chat){
         Intent intent = new Intent(ActivityChatList.this, ActivityChat.class);
         intent.putExtra("person", person);
-        intent.putExtra("chat", chat.getChatName());
+        intent.putExtra("chatName", chat.getChatName());
+        intent.putExtra("chatKey", chat.getChatKey());
         startActivity(intent);
     }
     private void getUserInfo(){
@@ -346,30 +307,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         number = person.getNumber();
         id = person.getId();
         addUserToDatabase(person);
-    }
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.chat_list_menu, menu);
-        return true;
-    }
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
-        switch (item.getItemId()) {
-            case R.id.menu_sign_out:
-                signOut();
-                return true;
-            case R.id.event_calendar:
-                goToEventCalendar();
-                return true;
-            default:
-                return super.onOptionsItemSelected(item);
-        }
-    }
-    public void goToEventCalendar(){
-        Intent i = new Intent(ActivityChatList.this, ActivityEventCalendar.class);
-        startActivity(i);
     }
     private void signOut() {
         AuthUI.getInstance().signOut(this)
@@ -415,6 +352,98 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         });
     }
+    private void goToSettings(MenuItem item){
+        Intent i = new Intent(ActivityChatList.this, ActivityChatSettings.class);
+        startActivity(i);
+    }
+    private void goToMembers(MenuItem item){
+
+    }
+    private void goToEventCalendar(MenuItem item){
+        //special case when from menu bar
+        Intent i = new Intent(ActivityChatList.this, ActivityEventCalendar.class);
+        startActivity(i);
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_chat_list);
+
+        chatsListView = (ListView) findViewById(R.id.list_of_chats);
+        chatsAdapter = new ArrayAdapter<Chat>(this, android.R.layout.simple_list_item_1, chatsArrayList);
+        chatsListView.setAdapter(chatsAdapter);
+
+        user = FirebaseAuth.getInstance().getCurrentUser();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
+        }
+
+        getUserInfo();
+
+        chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Chat chat = chatsAdapter.getItem(position);
+                goToChat(person, chat);
+            }
+        });
+
+        chatsListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                //Toast.makeText(getApplicationContext(), "long", Toast.LENGTH_SHORT).show();
+                registerForContextMenu(chatsListView);
+                openContextMenu(chatsListView);
+                return true;
+            }
+        });
+        newChatBehavior();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        displayChatList();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
+            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+            }
+        }
+    }
+
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        menu.setHeaderTitle("choose what to do");
+        menu.add(0, 0, 0, "settings");
+        menu.add(1, 1, 1, "members");
+        menu.add(2,2,2,"calendar");
+    }
+
+    @Override
+    public boolean onContextItemSelected(MenuItem item){
+        switch (item.getItemId()){
+            case 0:
+                goToSettings(item);
+                break;
+            case 1:
+                goToMembers(item);
+                break;
+            case 2:
+                goToEventCalendar(item);
+                break;
+        }
+        return true;
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
@@ -422,6 +451,29 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         if(requestCode==CREATE_ACCOUNT){
             person = (User) data.getSerializableExtra("person");
             getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.chat_list_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item
+        switch (item.getItemId()) {
+            case R.id.menu_sign_out:
+                signOut();
+                return true;
+            case R.id.event_calendar:
+                Log.d(">>>", "event calendar");
+                //goToEventCalendar(item, index);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
     }
 }
