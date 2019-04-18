@@ -12,7 +12,7 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ViewHolder> {
+public class AdapterEvent extends RecyclerView.Adapter<AdapterEvent.ViewHolder> {
     private List<Event> values;
 
     // Provide a reference to the views for each data item
@@ -47,13 +47,13 @@ public class EventAdapter extends RecyclerView.Adapter<EventAdapter.ViewHolder> 
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public EventAdapter(List<Event> myDataset) {
+    public AdapterEvent(List<Event> myDataset) {
         values = myDataset;
     }
 
     // Create new views (invoked by the layout manager)
     @Override
-    public EventAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public AdapterEvent.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 

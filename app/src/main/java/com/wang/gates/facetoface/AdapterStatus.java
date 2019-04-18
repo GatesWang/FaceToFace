@@ -12,7 +12,7 @@ import android.widget.TextView;
 
 import java.util.List;
 
-public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.ViewHolder> {
+public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder> {
     private List<Event> values;
 
     // Provide a reference to the views for each data item
@@ -47,13 +47,13 @@ public class StatusAdapter extends RecyclerView.Adapter<StatusAdapter.ViewHolder
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public StatusAdapter(List<Event> myDataset) {
+    public AdapterStatus(List<Event> myDataset) {
         values = myDataset;
     }
 
     // Create new views (invoked by the layout manager)
     @Override
-    public StatusAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public AdapterStatus.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 

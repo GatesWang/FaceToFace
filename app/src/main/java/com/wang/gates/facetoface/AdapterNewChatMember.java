@@ -11,11 +11,11 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-public class AdapterNewMember extends BaseAdapter implements ListAdapter {
+public class AdapterNewChatMember extends BaseAdapter implements ListAdapter {
     private ArrayList<String> list = new ArrayList<String>();
     private Context context;
 
-    public AdapterNewMember(ArrayList<String> list, Context context) {
+    public AdapterNewChatMember(ArrayList<String> list, Context context) {
         this.list = list;
         this.context = context;
     }

@@ -6,6 +6,8 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -30,8 +32,16 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
 
     private Button renameChat;
     private TextView nameLabel;
+
+    private ArrayList<String> memberIds = new ArrayList<>();
+
+    private RecyclerView memberRecyclerView;
+    private LinearLayoutManager layoutManager;
+    private AdapterMember adapterMember;
+    private HashMap<String, String> memberNumbers = new HashMap<>();
+    //stores <Name, Number>
+
     private ArrayList<Chat> chatList;
-    private HashMap<String, String> memberNumbers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +55,8 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         nameLabel.setText(chat.getChatName());
         renameChat = findViewById(R.id.chat_rename);
         renameChat.setOnClickListener(this);
+
+        listMembers();
     }
 
     @Override
@@ -132,12 +144,28 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     }
 
     private void listMembers(){
-        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey());
+        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for(DataSnapshot chat: dataSnapshot.getChildren()){
+                for(DataSnapshot member: dataSnapshot.getChildren()){
+                    memberIds.add(member.getValue().toString());
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference().child("users");
+        usersRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot user: dataSnapshot.getChildren()){
+                    if(memberIds.contains(user.child("id").getValue().toString())){// if this user is a member
+                        memberNumbers.put(user.child("name").getValue().toString(), user.child("number").getValue().toString());
+                    }
                 }
             }
 

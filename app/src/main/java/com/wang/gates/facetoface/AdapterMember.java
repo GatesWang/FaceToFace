@@ -1,19 +1,16 @@
 package com.wang.gates.facetoface;
 
 import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
-import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.util.List;
+import java.util.HashMap;
 
-public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder> {
-    private List<Event> values;
+public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder> {
+    private HashMap<String, String> values;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
@@ -36,7 +33,7 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
     }
 
     public void add(int position, Event item) {
-        values.add(position, item);
+
         notifyItemInserted(position);
     }
 
@@ -47,13 +44,13 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public MemberAdapter(List<Event> myDataset) {
+    public AdapterMember(HashMap<String, String> myDataset) {
         values = myDataset;
     }
 
     // Create new views (invoked by the layout manager)
     @Override
-    public MemberAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public AdapterMember.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 
@@ -67,27 +64,12 @@ public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder
     public void onBindViewHolder(final ViewHolder holder, final int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        final Event event = values.get(position);
-        holder.eventName.setText(event.getEventName());
-        holder.eventTime.setText(event.getTime());
-        holder.eventName.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent i = new Intent(holder.context, ActivityEvent.class);
-                Bundle bundle = new Bundle();
-                bundle.putSerializable("event", event);
-                i.putExtras(bundle);
-                holder.context.startActivity(i);
-            }
-        });
+
     }
 
-    // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
         return values.size();
     }
-    private void goToEvent(String eventKey){
 
-    }
 }

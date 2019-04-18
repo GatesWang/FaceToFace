@@ -65,7 +65,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
     private int chatSelectedPosition = -1;
 
-    private AdapterNewMember adapterNewMember;
+    private AdapterNewChatMember adapterNewChatMember;
     private ArrayAdapter<String> potentialMemberAdapter;
     private ArrayList<String> members;
 
@@ -140,8 +140,8 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 newMemberInput.setHint("Phone number");
 
                 members = new ArrayList<>();
-                adapterNewMember = new AdapterNewMember(members, getApplicationContext());
-                membersListView.setAdapter(adapterNewMember);
+                adapterNewChatMember = new AdapterNewChatMember(members, getApplicationContext());
+                membersListView.setAdapter(adapterNewChatMember);
                 newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
@@ -168,7 +168,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                             }
                                             //user is already in database, good
                                             members.add(newMemberString);
-                                            adapterNewMember.notifyDataSetChanged();
+                                            adapterNewChatMember.notifyDataSetChanged();
                                             newMemberInput.setText("");
                                             inDatabase = true;
                                         }
