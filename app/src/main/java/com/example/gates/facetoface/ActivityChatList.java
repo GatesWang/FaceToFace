@@ -63,6 +63,8 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private Button newChatButton;
     private String newChatKey;
 
+    private int chatSelectedPosition = -1;
+
     private AdapterNewMember adapterNewMember;
     private ArrayAdapter<String> potentialMemberAdapter;
     private ArrayList<String> members;
@@ -215,6 +217,10 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                         else if(members.size()<1){
                             Toast.makeText(ActivityChatList.this, "There needs to be at least one other member", Toast.LENGTH_SHORT).show();
                         }
+                        else if(chatNameNew.length()<1){
+                            Toast.makeText(ActivityChatList.this, "The chat must have a valid name", Toast.LENGTH_SHORT).show();
+
+                        }
                         else{
                             //create the chat object
                             final ArrayList<String> memberIds = new ArrayList<>();
@@ -255,6 +261,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                     }
                                 });
                             }
+                            dialog.dismiss();
                             displayChatList();
                         }
                     }
@@ -273,6 +280,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     }
     private void displayChatList(){
         chatsArrayList.clear();
+        chatsAdapter.clear();
         //only get chats of the current user
         DatabaseReference databaseMembers = FirebaseDatabase.getInstance().getReference("members");
         databaseMembers.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -295,12 +303,23 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         });
     }
-    private void goToChat(User person, Chat chat){
-        Intent intent = new Intent(ActivityChatList.this, ActivityChat.class);
-        intent.putExtra("person", person);
-        intent.putExtra("chatName", chat.getChatName());
-        intent.putExtra("chatKey", chat.getChatKey());
-        startActivity(intent);
+    private void setOnClick(){
+        chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
+                Chat chat = chatsAdapter.getItem(position);
+                goToChat(person, chat);
+            }
+        });
+
+        chatsListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                chatSelectedPosition = position;
+                openContextMenu(chatsListView);
+                return true;
+            }
+        });
     }
     private void getUserInfo(){
         person = (User) getIntent().getSerializableExtra("person");
@@ -352,16 +371,30 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             }
         });
     }
+    private void goToChat(User person, Chat chat){
+        Intent intent = new Intent(ActivityChatList.this, ActivityChat.class);
+        intent.putExtra("person", person);
+        intent.putExtra("chat", chat);
+        startActivity(intent);
+    }
     private void goToSettings(MenuItem item){
         Intent i = new Intent(ActivityChatList.this, ActivityChatSettings.class);
+        //chatSelectedPosition is set in setOnClick()
+        Chat chatSelected = chatsArrayList.get(chatSelectedPosition);
+        i.putExtra("chat", chatSelected);
+        Bundle chatList = new Bundle();
+        chatList.putSerializable("chatList", chatsArrayList);
+        i.putExtras(chatList);
         startActivity(i);
-    }
-    private void goToMembers(MenuItem item){
 
     }
     private void goToEventCalendar(MenuItem item){
-        //special case when from menu bar
         Intent i = new Intent(ActivityChatList.this, ActivityEventCalendar.class);
+        if(chatSelectedPosition!=-1){
+            //a particular chat is selected
+            Chat chatSelected = chatsArrayList.get(chatSelectedPosition);
+            i.putExtra("chat", chatSelected);
+        }
         startActivity(i);
     }
 
@@ -371,39 +404,26 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         setContentView(R.layout.activity_chat_list);
 
         chatsListView = (ListView) findViewById(R.id.list_of_chats);
+        registerForContextMenu(chatsListView);
         chatsAdapter = new ArrayAdapter<Chat>(this, android.R.layout.simple_list_item_1, chatsArrayList);
         chatsListView.setAdapter(chatsAdapter);
 
         user = FirebaseAuth.getInstance().getCurrentUser();
+
+        //if sdk version is greater than M and we dont not have permission, then request for permission
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
         }
 
         getUserInfo();
-
-        chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int position, long id) {
-                Chat chat = chatsAdapter.getItem(position);
-                goToChat(person, chat);
-            }
-        });
-
-        chatsListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-            @Override
-            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                //Toast.makeText(getApplicationContext(), "long", Toast.LENGTH_SHORT).show();
-                registerForContextMenu(chatsListView);
-                openContextMenu(chatsListView);
-                return true;
-            }
-        });
+        setOnClick();
         newChatBehavior();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
+        chatSelectedPosition = -1;
         displayChatList();
     }
 
@@ -425,8 +445,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
         menu.setHeaderTitle("choose what to do");
         menu.add(0, 0, 0, "settings");
-        menu.add(1, 1, 1, "members");
-        menu.add(2,2,2,"calendar");
+        menu.add(1,1,1,"calendar");
     }
 
     @Override
@@ -436,9 +455,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 goToSettings(item);
                 break;
             case 1:
-                goToMembers(item);
-                break;
-            case 2:
                 goToEventCalendar(item);
                 break;
         }
@@ -469,8 +485,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 signOut();
                 return true;
             case R.id.event_calendar:
-                Log.d(">>>", "event calendar");
-                //goToEventCalendar(item, index);
+                goToEventCalendar(item);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

@@ -1,9 +1,10 @@
 package com.example.gates.facetoface;
 
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class Chat {
+public class Chat implements Serializable {
     private String chatName;
     private String chatKey;
     private ArrayList<String> memberIds;

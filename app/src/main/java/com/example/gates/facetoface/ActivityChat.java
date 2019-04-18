@@ -41,11 +41,11 @@ import java.util.ArrayList;
 public class ActivityChat extends AppCompatActivity {
 
     private User person;
-    private String chatKey;
-    private String chatName;
+    private Chat chat;
+
 
     private AdapterMessage messagesAdapter;
-    private ArrayList<ChatMessage> messagesArrayList;
+    private ArrayList<ChatMessage> messagesArrayList = new ArrayList<ChatMessage>();
     private ListView messagesListView;
 
     private void signOut() {
@@ -89,11 +89,8 @@ public class ActivityChat extends AppCompatActivity {
                             ArrayList<ChatMessage> messages = null;
                             String chatMessagesKey = "";
                             for(DataSnapshot chatJson: dataSnapshot.getChildren()){
-                                Log.d(">>>", "" + chatJson.child("chatId").getValue().toString());
-                                Log.d(">>>", "" + chatKey);
 
-                                if(chatJson.child("chatId").getValue().toString().equals(chatKey)){
-                                    Log.d(">>>", "hello");
+                                if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){
                                     chatMessagesKey = chatJson.getKey();
                                     //get the messages
                                     GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
@@ -125,14 +122,14 @@ public class ActivityChat extends AppCompatActivity {
     }
 
     private void displayChatMessages() {
-        messagesArrayList.clear();
+        messagesArrayList = new ArrayList<>();
         //get messages of this chat
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages");
         database.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot chatJson : dataSnapshot.getChildren()) {
-                    if(chatJson.child("chatId").getValue().toString().equals(chatKey)){//if this is the chat that we want
+                    if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){//if this is the chat that we want
                         //get messages
                         GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
                         messagesArrayList = chatJson.child("messages").getValue(t);
@@ -152,15 +149,24 @@ public class ActivityChat extends AppCompatActivity {
 
     private void getUserInfo(){
         Intent intent = getIntent();
-
         person = (User) intent.getSerializableExtra("person");
-        chatKey = (String) intent.getStringExtra("chatKey");
+        chat = (Chat) intent.getSerializableExtra("chat");
+    }
+
+    private void leaveChat(){
+
     }
 
     private void goToEventCalendar(){
-
+        Intent i = new Intent(ActivityChat.this, ActivityEventCalendar.class);
+        //a particular chat is selected
+        i.putExtra("chat", chat);
+        startActivity(i);
     }
 
+    private void goToMembers(){
+
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -171,7 +177,7 @@ public class ActivityChat extends AppCompatActivity {
         messagesListView.setAdapter(messagesAdapter);
 
         getUserInfo();
-        getSupportActionBar().setTitle(chatName);
+        getSupportActionBar().setTitle(chat.getChatName());
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         displayChatMessages();
         newChatMessage();
@@ -202,8 +208,11 @@ public class ActivityChat extends AppCompatActivity {
             case android.R.id.home:
                 finish();
                 return true;
-            case R.id.menu_sign_out:
-                signOut();
+            case R.id.members:
+                goToMembers();
+                return true;
+            case R.id.calendar:
+                goToEventCalendar();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);

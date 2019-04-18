@@ -26,6 +26,9 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
 
     @Override
     public int getCount() {
+        if(list==null){
+            return 0;
+        }
         return list.size();
     }
 
