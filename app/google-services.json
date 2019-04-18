@@ -8,20 +8,12 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:308246880154:android:1cf65c0aa746c7c4",
+        "mobilesdk_app_id": "1:308246880154:android:f891a9cae14f7fe3",
         "android_client_info": {
-          "package_name": "com.example.gates.facetoface"
+          "package_name": "com.wang.gates.facetoface"
         }
       },
       "oauth_client": [
-        {
-          "client_id": "308246880154-qrs49eb1kcac0c10lvnn8gprufm8d2u1.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.gates.facetoface",
-            "certificate_hash": "e58277770327595b163f4c0263a6e134d9759990"
-          }
-        },
         {
           "client_id": "308246880154-26pg9sspq09oc7ri7c0m84p2jfob0ree.apps.googleusercontent.com",
           "client_type": 3
@@ -33,20 +25,13 @@
         }
       ],
       "services": {
-        "analytics_service": {
-          "status": 1
-        },
         "appinvite_service": {
-          "status": 2,
           "other_platform_oauth_client": [
             {
               "client_id": "308246880154-26pg9sspq09oc7ri7c0m84p2jfob0ree.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
-        },
-        "ads_service": {
-          "status": 2
         }
       }
     }
