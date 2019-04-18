@@ -133,8 +133,8 @@ public class ActivityEvent extends Activity {
         String time = eventTimeView.getText().toString();
 
         final Event event = new Event(eventName, date, time, memberStatus, chat);
-        event.setEventKey(this.event.getEventKey());
-        if(event!=null){
+        if(this.event!=null){
+            event.setEventKey(this.event.getEventKey());
             final DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
             database.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -160,8 +160,8 @@ public class ActivityEvent extends Activity {
             DatabaseReference eventFirebase = database.push();
             event.setEventKey(eventFirebase.getKey());
             database.push().setValue(event);
-            finish();
         }
+        finish();
     }
 
     private void populateMemberStatus(){
