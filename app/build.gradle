@@ -5,7 +5,7 @@ apply plugin: 'com.google.gms.google-services'
 android {
     compileSdkVersion 28
     defaultConfig {
-        applicationId "com.example.gates.facetoface"
+        applicationId "com.wang.gates.facetoface"
         multiDexEnabled true
         minSdkVersion 16
         targetSdkVersion 26
