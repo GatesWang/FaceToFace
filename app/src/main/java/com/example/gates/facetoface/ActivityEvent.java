@@ -163,6 +163,7 @@ public class ActivityEvent extends Activity {
             finish();
         }
     }
+
     private void populateMemberStatus(){
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("members").child(chat.getChatKey()).child("memberIds");
         database.addListenerForSingleValueEvent(new ValueEventListener() {
