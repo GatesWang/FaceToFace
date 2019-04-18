@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.gates.facetoface">
+    package="com.wang.gates.facetoface">
 
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <uses-permission android:name="android.permission.READ_PROFILE" />
@@ -35,12 +35,6 @@
             />
         <activity
             android:name=".ActivityRegister"
-            />
-        <activity
-            android:name=".ActivityChatSettings"
-            />
-        <activity
-            android:name=".ActivityChatMembers"
             />
     </application>
 
