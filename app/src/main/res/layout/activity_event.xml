@@ -39,7 +39,6 @@
         android:text="Set time"
         />
 
-
     <Button
         android:id="@+id/create_event_button"
         android:layout_width="match_parent"

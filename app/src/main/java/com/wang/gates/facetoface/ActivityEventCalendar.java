@@ -31,7 +31,7 @@ public class ActivityEventCalendar extends Activity{
 
     private RecyclerView eventsRecyclerView;
     private LinearLayoutManager layoutManager;
-    private RecyclerViewAdapter eventsAdapter;
+    private EventAdapter eventsAdapter;
     private ArrayList<Event> eventsArrayList = new ArrayList<>();
 
     private String patternTime = "hh:mm a";
@@ -51,7 +51,7 @@ public class ActivityEventCalendar extends Activity{
         //set up recyclerview
         layoutManager = new LinearLayoutManager(this);
         eventsRecyclerView.setLayoutManager(layoutManager);
-        eventsAdapter = new RecyclerViewAdapter(eventsArrayList);
+        eventsAdapter = new EventAdapter(eventsArrayList);
         eventsRecyclerView.setAdapter(eventsAdapter);
 
         calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
@@ -119,7 +119,7 @@ public class ActivityEventCalendar extends Activity{
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 eventsArrayList.clear();
-                eventsAdapter = new RecyclerViewAdapter(eventsArrayList);
+                eventsAdapter = new EventAdapter(eventsArrayList);
                 eventsRecyclerView.setAdapter(eventsAdapter);
                 for(DataSnapshot event: dataSnapshot.getChildren()){
                     if(event.child("date").getValue().toString().equals(toSearchFor)){

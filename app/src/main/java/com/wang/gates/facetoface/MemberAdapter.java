@@ -1,7 +1,5 @@
 package com.wang.gates.facetoface;
 
-import java.util.List;
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -12,7 +10,9 @@ import android.view.View.OnClickListener;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapter.ViewHolder> {
+import java.util.List;
+
+public class MemberAdapter extends RecyclerView.Adapter<MemberAdapter.ViewHolder> {
     private List<Event> values;
 
     // Provide a reference to the views for each data item
@@ -47,13 +47,13 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewAdapte
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public RecyclerViewAdapter(List<Event> myDataset) {
+    public MemberAdapter(List<Event> myDataset) {
         values = myDataset;
     }
 
     // Create new views (invoked by the layout manager)
     @Override
-    public RecyclerViewAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
+    public MemberAdapter.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
 

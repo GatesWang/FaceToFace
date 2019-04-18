@@ -1,10 +1,10 @@
 package com.wang.gates.facetoface;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -12,7 +12,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
+
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.FirebaseException;
@@ -23,10 +23,11 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.auth.PhoneAuthCredential;
 import com.google.firebase.auth.PhoneAuthProvider;
+import com.wang.gates.facetoface.R;
 
 import java.util.concurrent.TimeUnit;
 
-public class ActivitySignIn extends Activity implements
+public class ActivitySignIn extends AppCompatActivity implements
         View.OnClickListener {
 
     private static final String TAG = "PhoneAuthActivity";
@@ -40,7 +41,9 @@ public class ActivitySignIn extends Activity implements
     private static final int STATE_SIGNIN_FAILED = 5;
     private static final int STATE_SIGNIN_SUCCESS = 6;
 
+    // [START declare_auth]
     private FirebaseAuth mAuth;
+    // [END declare_auth]
 
     private boolean mVerificationInProgress = false;
     private String mVerificationId;
@@ -170,7 +173,7 @@ public class ActivitySignIn extends Activity implements
         // [END phone_auth_callbacks]
     }
 
-    // [START on_start_check_user]/**/
+    // [START on_start_check_user]
     @Override
     public void onStart() {
         super.onStart();
@@ -270,17 +273,6 @@ public class ActivitySignIn extends Activity implements
         updateUI(STATE_INITIALIZED);
     }
 
-    private void goToChatList(FirebaseUser user){
-        Intent i = new Intent(ActivitySignIn.this, ActivityChatList.class);
-        User person = new User(user);
-        person.setNumber(user.getPhoneNumber());
-        Bundle bundle = new Bundle();
-        bundle.putSerializable("person", person);
-        i.putExtras(bundle);
-        startActivity(i);
-        finish();
-    }
-
     private void updateUI(int uiState) {
         updateUI(uiState, mAuth.getCurrentUser(), null);
     }
@@ -323,7 +315,9 @@ public class ActivitySignIn extends Activity implements
                 break;
             case STATE_VERIFY_SUCCESS:
                 // Verification has succeeded, proceed to firebase sign in
-                Toast.makeText(getApplicationContext(), "Login Success", Toast.LENGTH_SHORT).show();
+                disableViews(mStartButton, mVerifyButton, mResendButton, mPhoneNumberField,
+                        mVerificationField);
+                mDetailText.setText(R.string.status_verification_succeeded);
 
                 // Set the verification text based on the credential
                 if (cred != null) {
@@ -333,12 +327,14 @@ public class ActivitySignIn extends Activity implements
                         mVerificationField.setText(R.string.instant_validation);
                     }
                 }
+
                 break;
             case STATE_SIGNIN_FAILED:
                 // No-op, handled by sign-in check
                 mDetailText.setText(R.string.status_sign_in_failed);
                 break;
             case STATE_SIGNIN_SUCCESS:
+                // No-op, handled by sign-in check
                 goToChatList(user);
                 break;
         }
@@ -350,6 +346,7 @@ public class ActivitySignIn extends Activity implements
 
             mStatusText.setText(R.string.signed_out);
         } else {
+            Log.d(">>>", "signed out");
             // Signed in
             mPhoneNumberViews.setVisibility(View.GONE);
             mSignedInViews.setVisibility(View.VISIBLE);
@@ -400,7 +397,6 @@ public class ActivitySignIn extends Activity implements
                     mVerificationField.setError("Cannot be empty.");
                     return;
                 }
-
                 verifyPhoneNumberWithCode(mVerificationId, code);
                 break;
             case R.id.buttonResend:
@@ -410,5 +406,16 @@ public class ActivitySignIn extends Activity implements
                 signOut();
                 break;
         }
+    }
+
+    private void goToChatList(FirebaseUser user){
+        Intent i = new Intent(ActivitySignIn.this, ActivityChatList.class);
+        User person = new User(user);
+        person.setNumber(user.getPhoneNumber());
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("person", person);
+        i.putExtras(bundle);
+        startActivity(i);
+        finish();
     }
 }

@@ -23,6 +23,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ActivityChatSettings extends Activity implements  View.OnClickListener{
     private Chat chat;
@@ -30,6 +31,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private Button renameChat;
     private TextView nameLabel;
     private ArrayList<Chat> chatList;
+    private HashMap<String, String> memberNumbers;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +129,23 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.notification_options, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
+    }
 
+    private void listMembers(){
+        DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey());
+        chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot chat: dataSnapshot.getChildren()){
+
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
 
 }
