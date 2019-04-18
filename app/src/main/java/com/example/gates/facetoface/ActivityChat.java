@@ -1,10 +1,13 @@
 package com.example.gates.facetoface;
 
 import android.content.Intent;
-
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -13,74 +16,38 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
+import java.io.File;
 import java.util.ArrayList;
 
 public class ActivityChat extends AppCompatActivity {
 
     private User person;
-    private String chatName;
-    private Uri uri;
+    private Chat chat;
+
+
     private AdapterMessage messagesAdapter;
-    private ArrayList<ChatMessage> messagesArrayList;
+    private ArrayList<ChatMessage> messagesArrayList = new ArrayList<ChatMessage>();
     private ListView messagesListView;
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat);
-
-        messagesArrayList = new ArrayList<ChatMessage>();
-        messagesListView = (ListView) findViewById(R.id.list_of_messages);
-        messagesAdapter = new AdapterMessage(messagesArrayList,ActivityChat.this);
-        messagesListView.setAdapter(messagesAdapter);
-
-        getUserInfo();
-        displayChatMessages();
-
-        FloatingActionButton fab =
-                (FloatingActionButton)findViewById(R.id.new_message);
-
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                EditText input = (EditText)findViewById(R.id.message_input);
-
-                FirebaseDatabase.getInstance()
-                        .getReference()
-                        .child("messages")
-                        .child(chatName)
-                        .push()
-                        .setValue(new ChatMessage(
-                                input.getText().toString(),
-                                person.getName()));
-
-                Log.d(">>>", ""+person.getName());
-                // Clear the input
-                input.setText("");
-            }
-        });
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-    }
     private void signOut() {
         AuthUI.getInstance().signOut(this)
                 .addOnCompleteListener(new OnCompleteListener<Void>() {
@@ -101,32 +68,129 @@ public class ActivityChat extends AppCompatActivity {
 
     }
 
+    private void newChatMessage(){
+        FloatingActionButton fab = (FloatingActionButton)findViewById(R.id.new_message);
+
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                final EditText input = (EditText)findViewById(R.id.message_input);
+                String inputText = input.getText().toString();
+
+                if(inputText.trim().equals("")){
+                    Toast.makeText(ActivityChat.this, "Input must contain text", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    final ChatMessage chatMessage = new ChatMessage(inputText, person.getName(), person.getId());
+                    final DatabaseReference messagesReference = FirebaseDatabase.getInstance().getReference().child("messages");
+                    messagesReference.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            ArrayList<ChatMessage> messages = null;
+                            String chatMessagesKey = "";
+                            for(DataSnapshot chatJson: dataSnapshot.getChildren()){
+
+                                if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){
+                                    chatMessagesKey = chatJson.getKey();
+                                    //get the messages
+                                    GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
+                                    messages = (ArrayList<ChatMessage>) chatJson.child("messages").getValue(t);
+                                    //add messages
+                                    //if no prior messages
+                                    if(messages==null){
+                                        messages = new ArrayList<>();
+                                    }
+                                    messages.add(chatMessage);
+                                }
+                            }
+                            //send back to firebase
+                            //set the arraylist as its new value
+                            messagesReference.child(chatMessagesKey).child("messages").setValue(messages);
+                            // Clear the input
+                            input.setText("");
+                            displayChatMessages();
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+            }
+        });
+    }
+
     private void displayChatMessages() {
-        //only display last 20 messages
-        messagesArrayList.clear();
-        //only get chats of the current user
-        final String id = person.getId();
-        DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages").child(chatName);
+        messagesArrayList = new ArrayList<>();
+        //get messages of this chat
+        DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages");
         database.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot childSnap : dataSnapshot.getChildren()) {
-                    ArrayList<String> temp = new ArrayList<String>();
-                    for(DataSnapshot d : childSnap.getChildren()){
-                        temp.add(d.getValue().toString());
+                for (DataSnapshot chatJson : dataSnapshot.getChildren()) {
+                    if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){//if this is the chat that we want
+                        //get messages
+                        GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
+                        messagesArrayList = chatJson.child("messages").getValue(t);
                     }
-                    ChatMessage chatMessage = new ChatMessage(temp.get(0), temp.get(2), Long.parseLong(temp.get(1)));
-                    messagesArrayList.add(chatMessage);
-                    Log.d(">>>", "" + messagesArrayList);
                 }
-                messagesAdapter = new AdapterMessage(messagesArrayList,ActivityChat.this);
+                messagesAdapter = new AdapterMessage(messagesArrayList, ActivityChat.this);//update messages arraylist
                 messagesListView.setAdapter(messagesAdapter);
             }
             @Override
             public void onCancelled(DatabaseError error) {
 
             }
+
         });
+
+    }
+
+    private void getUserInfo(){
+        Intent intent = getIntent();
+        person = (User) intent.getSerializableExtra("person");
+        chat = (Chat) intent.getSerializableExtra("chat");
+    }
+
+    private void leaveChat(){
+
+    }
+
+    private void goToEventCalendar(){
+        Intent i = new Intent(ActivityChat.this, ActivityEventCalendar.class);
+        //a particular chat is selected
+        i.putExtra("chat", chat);
+        startActivity(i);
+    }
+
+    private void goToMembers(){
+
+    }
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_chat);
+
+        messagesArrayList = new ArrayList<ChatMessage>();
+        messagesListView = (ListView) findViewById(R.id.list_of_messages);
+        messagesListView.setAdapter(messagesAdapter);
+
+        getUserInfo();
+        getSupportActionBar().setTitle(chat.getChatName());
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        displayChatMessages();
+        newChatMessage();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
     }
 
     @Override
@@ -141,22 +205,18 @@ public class ActivityChat extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
-            case R.id.menu_sign_out:
-                signOut();
+            case android.R.id.home:
+                finish();
+                return true;
+            case R.id.members:
+                goToMembers();
+                return true;
+            case R.id.calendar:
+                goToEventCalendar();
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
-    }
-
-    private void goToEventCalendar(){
-
-    }
-
-    private void getUserInfo(){
-        Intent intent = getIntent();
-        person = (User) intent.getSerializableExtra("person");
-        chatName = (String) intent.getStringExtra("chat");
     }
 
 }

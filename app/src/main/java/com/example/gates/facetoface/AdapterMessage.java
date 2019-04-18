@@ -5,13 +5,18 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
+
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 
 public class AdapterMessage extends BaseAdapter implements ListAdapter {
-    private ArrayList<ChatMessage> list = new ArrayList();
+    private ArrayList<ChatMessage> list;
     private Context context;
 
     public AdapterMessage(ArrayList<ChatMessage> list, Context context) {
@@ -21,6 +26,9 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
 
     @Override
     public int getCount() {
+        if(list==null){
+            return 0;
+        }
         return list.size();
     }
 
@@ -45,15 +53,28 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
         ChatMessage chatMessage = ((ChatMessage) list.get(position));
         String message = chatMessage.getMessageText();
         String user = chatMessage.getMessageUser();
+        String id = chatMessage.getUserID();
         long time = chatMessage.getMessageTime();
+
+        //Log.d(">>>", "index " + index);
 
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(time);
         String date = "" + c.getTime();
-        //Handle TextView and display string from your list
+
+        //start loading the views
         TextView messageTextView = (TextView)view.findViewById(R.id.message_text);
+        ImageView userImage = (ImageView) view.findViewById(R.id.user_image);
         TextView userTextView = (TextView)view.findViewById(R.id.message_user);
         TextView timeTextView = (TextView)view.findViewById(R.id.message_time);
+
+        //set values for views
+        //get the corresponding picture
+        StorageReference profileRef = FirebaseStorage.getInstance().getReference("profile_pictures");
+        StorageReference userRef = profileRef.child(id);
+        GlideApp.with(context)
+                .load(userRef)
+                .into(userImage);
 
         messageTextView.setText(message);
         userTextView.setText(user);

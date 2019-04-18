@@ -273,7 +273,6 @@ public class ActivitySignIn extends Activity implements
     }
 
     private void goToChatList(FirebaseUser user){
-
         Intent i = new Intent(ActivitySignIn.this, ActivityChatList.class);
         User person = new User(user);
         person.setNumber(user.getPhoneNumber());
@@ -395,7 +394,6 @@ public class ActivitySignIn extends Activity implements
                 if (!validatePhoneNumber()) {
                     return;
                 }
-
                 startPhoneNumberVerification(mPhoneNumberField.getText().toString());
                 break;
             case R.id.buttonVerifyPhone:

@@ -6,9 +6,15 @@
         android:id="@+id/message_user"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_toRightOf="@id/user_image"
         android:layout_marginLeft="5dp"
         android:textStyle="normal|bold" />
-
+    <ImageView
+        android:id="@+id/user_image"
+        android:layout_marginLeft="5dp"
+        android:layout_width="15dp"
+        android:layout_height="15dp"
+        />
     <TextView
         android:id="@+id/message_time"
         android:layout_width="wrap_content"
