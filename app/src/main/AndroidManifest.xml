@@ -36,6 +36,12 @@
         <activity
             android:name=".ActivityRegister"
             />
+        <activity
+            android:name=".ActivityChatSettings"
+            />
+        <activity
+            android:name=".ActivityChatMembers"
+            />
     </application>
 
 </manifest>
