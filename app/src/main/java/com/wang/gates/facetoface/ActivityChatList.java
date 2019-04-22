@@ -375,6 +375,9 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         Intent intent = new Intent(ActivityChatList.this, ActivityChat.class);
         intent.putExtra("person", person);
         intent.putExtra("chat", chat);
+        Bundle chatList = new Bundle();
+        chatList.putSerializable("chatList", chatsArrayList);
+        intent.putExtras(chatList);
         startActivity(intent);
     }
     private void goToSettings(MenuItem item){
@@ -386,10 +389,10 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         chatList.putSerializable("chatList", chatsArrayList);
         i.putExtras(chatList);
         startActivity(i);
-
     }
     private void goToEventCalendar(MenuItem item){
         Intent i = new Intent(ActivityChatList.this, ActivityEventCalendar.class);
+        i.putExtra("user", person);
         if(chatSelectedPosition!=-1){
             //a particular chat is selected
             Chat chatSelected = chatsArrayList.get(chatSelectedPosition);

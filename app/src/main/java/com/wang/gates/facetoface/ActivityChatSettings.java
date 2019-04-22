@@ -9,7 +9,9 @@ import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
+import android.util.Log;
 import android.view.View;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -34,14 +36,18 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private TextView nameLabel;
 
     private ArrayList<String> memberIds = new ArrayList<>();
+    private HashMap<String, String> idToName = new HashMap<String, String>();
+
 
     private RecyclerView memberRecyclerView;
-    private LinearLayoutManager layoutManager;
-    private AdapterMember adapterMember;
+    private LinearLayoutManager layoutManager = new LinearLayoutManager(ActivityChatSettings.this);
     private HashMap<String, String> memberNumbers = new HashMap<>();
+    private AdapterMember adapterMember;
     //stores <Name, Number>
 
+
     private ArrayList<Chat> chatList;
+    private String newName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,14 +55,17 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         setContentView(R.layout.activity_chat_settings);
 
         getInfo();
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat);
         setUpNotifications();
 
         nameLabel = findViewById(R.id.name_label);
-        nameLabel.setText(chat.getChatName());
         renameChat = findViewById(R.id.chat_rename);
-        renameChat.setOnClickListener(this);
+        memberRecyclerView = findViewById(R.id.members_list);
 
-        listMembers();
+        nameLabel.setText(chat.getChatName());
+
+        renameChat.setOnClickListener(this);
+        getMembers();
     }
 
     @Override
@@ -113,6 +122,10 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
                                     String chatJsonKey = chatJson.getKey();
                                     membersRef.child(chatJsonKey).child("chatName").setValue(chatNameNew);
                                     nameLabel.setText(chatNameNew);
+                                    newName = chatNameNew;
+                                    Intent returnIntent = new Intent();
+                                    returnIntent.putExtra("chatnewname", newName);
+                                    setResult(Activity.RESULT_OK, returnIntent);
                                 }
                             }
 
@@ -143,7 +156,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         spinner.setAdapter(adapter);
     }
 
-    private void listMembers(){
+    private void getMembers(){
         DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -164,9 +177,11 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 for(DataSnapshot user: dataSnapshot.getChildren()){
                     if(memberIds.contains(user.child("id").getValue().toString())){// if this user is a member
+                        idToName.put(user.child("name").getValue().toString(), user.child("id").getValue().toString());
                         memberNumbers.put(user.child("name").getValue().toString(), user.child("number").getValue().toString());
                     }
                 }
+                updateRecyclerView();
             }
 
             @Override
@@ -174,6 +189,14 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
 
             }
         });
+    }
+
+    private void updateRecyclerView(){
+        layoutManager = new LinearLayoutManager(this);
+        memberRecyclerView.setLayoutManager(layoutManager);
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat);
+        memberRecyclerView.setAdapter(adapterMember);
+        Log.d(">>>", "" + memberNumbers);
     }
 
 }

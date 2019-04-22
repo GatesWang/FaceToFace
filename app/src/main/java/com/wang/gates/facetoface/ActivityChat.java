@@ -1,10 +1,13 @@
 package com.wang.gates.facetoface;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -33,6 +36,9 @@ public class ActivityChat extends AppCompatActivity {
     private AdapterMessage messagesAdapter;
     private ArrayList<ChatMessage> messagesArrayList = new ArrayList<ChatMessage>();
     private ListView messagesListView;
+
+    private ArrayList<Chat> chatsArrayList = new ArrayList<>();
+    private static final int CHAT_CHANGED = 10;
 
     private void signOut() {
         AuthUI.getInstance().signOut(this)
@@ -137,11 +143,9 @@ public class ActivityChat extends AppCompatActivity {
         Intent intent = getIntent();
         person = (User) intent.getSerializableExtra("person");
         chat = (Chat) intent.getSerializableExtra("chat");
+        chatsArrayList = (ArrayList<Chat>) intent.getExtras().get("chatList");
     }
 
-    private void leaveChat(){
-
-    }
 
     private void goToEventCalendar(){
         Intent i = new Intent(ActivityChat.this, ActivityEventCalendar.class);
@@ -150,9 +154,16 @@ public class ActivityChat extends AppCompatActivity {
         startActivity(i);
     }
 
-    private void goToMembers(){
-
+    private void goToSettings(){
+        Intent i = new Intent(ActivityChat.this, ActivityChatSettings.class);
+        //chatSelectedPosition is set in setOnClick()
+        i.putExtra("chat", chat);
+        Bundle chatList = new Bundle();
+        chatList.putSerializable("chatList", chatsArrayList);
+        i.putExtras(chatList);
+        startActivityForResult(i, CHAT_CHANGED);
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -172,6 +183,7 @@ public class ActivityChat extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
+
     }
 
     @Override
@@ -194,8 +206,8 @@ public class ActivityChat extends AppCompatActivity {
             case android.R.id.home:
                 finish();
                 return true;
-            case R.id.members:
-                goToMembers();
+            case R.id.settings:
+                goToSettings();
                 return true;
             case R.id.calendar:
                 goToEventCalendar();
@@ -205,4 +217,13 @@ public class ActivityChat extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        if(requestCode == CHAT_CHANGED){
+            if(resultCode == Activity.RESULT_OK){
+                String newName = (String) data.getStringExtra("chatnewname");
+                getSupportActionBar().setTitle(newName);
+            }
+        }
+    }
 }

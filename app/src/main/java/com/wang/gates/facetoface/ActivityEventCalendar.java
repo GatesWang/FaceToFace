@@ -25,6 +25,7 @@ import java.util.Calendar;
 public class ActivityEventCalendar extends Activity{
 
     private Chat chat;
+    private User user;
 
     private CalendarView calendarView;
     private Button newEventButton;
@@ -84,7 +85,10 @@ public class ActivityEventCalendar extends Activity{
             if(bundle.get("chat")!=null){
                 //particular
                 chat = (Chat) bundle.getSerializable("chat");
-                //Toast.makeText(getApplicationContext(), "" + chat.getChatName(), Toast.LENGTH_SHORT).show();
+            }
+            if(bundle.get("user")!=null){
+                user = (User) getIntent().getExtras().get("user");
+                Log.d(">>>", "" + user.getId());
             }
         }
         else{
@@ -92,7 +96,6 @@ public class ActivityEventCalendar extends Activity{
             chat = null;
             //hide button to make new event
             newEventButton.setVisibility(View.INVISIBLE);
-            //Toast.makeText(getApplicationContext(), "general", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -125,7 +128,12 @@ public class ActivityEventCalendar extends Activity{
                     if(event.child("date").getValue().toString().equals(toSearchFor)){
                         //make sure the chatKey matches
                         if(chat==null){
-                            eventsArrayList.add((Event) event.getValue(Event.class));
+                            DataSnapshot members = event.child("memberStatus");
+                            for(DataSnapshot member: members.getChildren()){
+                                if(member.getKey().toString().equals(user.getId())){//make sure the user matches
+                                    eventsArrayList.add((Event) event.getValue(Event.class));
+                                }
+                            }
                         }
                         else if(chat!=null && event.child("chat").child("chatKey").getValue().toString().equals(chat.getChatKey())){
                             eventsArrayList.add((Event) event.getValue(Event.class));
