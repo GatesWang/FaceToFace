@@ -3,8 +3,10 @@ package com.wang.gates.facetoface;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.Build;
@@ -433,6 +435,11 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     @Override
     protected void onStop() {
         super.onStop();
+        //shared preferences
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putString("id",person.getId());
+        editor.commit();
     }
 
     @Override

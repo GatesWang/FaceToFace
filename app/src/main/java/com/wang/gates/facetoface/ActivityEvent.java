@@ -3,8 +3,11 @@ package com.wang.gates.facetoface;
 import android.app.Activity;
 import android.app.TimePickerDialog;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -19,6 +22,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 
@@ -40,7 +44,15 @@ public class ActivityEvent extends Activity {
     private Button setTimeButtonView;
     private Button createEventButtonView;
 
+    private RecyclerView statusRecyclerView;
+    private LinearLayoutManager layoutManager;
+    private AdapterStatus statusAdapter;
     private HashMap<String, Boolean> memberStatus = new HashMap<>();
+    //<name, status>
+    private HashMap<String, String> members = new HashMap<>();
+    //<name, id>
+
+    private String id;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,9 +67,11 @@ public class ActivityEvent extends Activity {
         setTimeButtonView = findViewById(R.id.set_event_time_button);
         createEventButtonView = findViewById(R.id.create_event_button);
 
+        statusRecyclerView  = findViewById(R.id.status_recycler);
+        layoutManager = new LinearLayoutManager(ActivityEvent.this);
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+
         getInfo();
-        populateMemberStatus();
-        fillViews();
 
         setTimeButtonView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -87,18 +101,29 @@ public class ActivityEvent extends Activity {
         });
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        populateMemberStatus();
+        fillViews();
+    }
+
     private void getInfo(){
         Intent i = getIntent();
-        if(i.getSerializableExtra("event") != null){//passing an events object in instead
+        if(i.getSerializableExtra("event") != null){
             event = (Event)i.getSerializableExtra("event");
             chat = event.getChat();
+            eventKey = event.getEventKey();
         }
         else{
             chat = (Chat) i.getSerializableExtra("chat");
             dateLong = i.getLongExtra("dateLong", 0);
             eventKey = i.getStringExtra("eventKey");
         }
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
+        id = pref.getString("id", null);
     }
+
     private void fillViews(){
         if(event!=null){
             chatName.setText(chat.getChatName());
@@ -139,9 +164,6 @@ public class ActivityEvent extends Activity {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     for(DataSnapshot e : dataSnapshot.getChildren()){
-                        Log.d(">>>", "1 " + e.child("eventKey").getValue().toString());
-                        Log.d(">>>", "2 " + event.getEventKey());
-
                         if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
                             database.child(e.getKey()).setValue(event);
                         }
@@ -168,16 +190,63 @@ public class ActivityEvent extends Activity {
         database.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                for(DataSnapshot member: dataSnapshot.getChildren()){
+                for(final DataSnapshot member: dataSnapshot.getChildren()){
                     memberStatus.put(member.getValue().toString(), false);
+                    //<id, status>
+                    final DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
+                    userRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            ArrayList<String> keys = new ArrayList<>(memberStatus.keySet());
+                            for(DataSnapshot user: dataSnapshot.getChildren()){
+                                if(keys.contains(user.getKey())){
+                                    members.put(user.getKey(), user.child("name").getValue().toString());
+                                }
+                            }
+                            getStatus(); //updates recyclerview inside
+                        }
+
+                        @Override
+                        public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                        }
+                    });
                 }
             }
-
             @Override
             public void onCancelled(@NonNull DatabaseError databaseError) {
 
             }
         });
+    }
+
+    private void updateRecyclerView(){
+        layoutManager = new LinearLayoutManager(this);
+        layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+        statusRecyclerView.setLayoutManager(layoutManager);
+        statusAdapter = new AdapterStatus(memberStatus, members, id, event.getEventKey());
+        statusRecyclerView.setAdapter(statusAdapter);
+    }
+
+    private void getStatus(){
+        if(!eventKey.equals("new")){//not a new event
+            DatabaseReference eventsRef = FirebaseDatabase.getInstance().getReference("events");
+            eventsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    for(DataSnapshot event: dataSnapshot.getChildren()){
+                        if(event.child("eventKey").getValue().toString().equals(eventKey)){
+                            memberStatus = (HashMap) event.child("memberStatus").getValue();
+                            updateRecyclerView();
+                        }
+                    }
+                }
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
     }
 
 }

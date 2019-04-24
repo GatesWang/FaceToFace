@@ -99,12 +99,14 @@ public class ActivityEventCalendar extends Activity{
         }
     }
 
-
     private void goToEvent(){
         Intent i = new Intent(ActivityEventCalendar.this, ActivityEvent.class);
         i.putExtra("eventKey","new");//this indicates that we are creating a new event
         i.putExtra("dateLong", dateLong);
         i.putExtra("chat", chat);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("user", user);
+        i.putExtras(bundle);
         startActivity(i);
     }
 

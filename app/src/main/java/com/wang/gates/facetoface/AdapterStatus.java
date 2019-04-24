@@ -3,25 +3,46 @@ package com.wang.gates.facetoface;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.widget.CompoundButton;
+import android.widget.ImageView;
+import android.widget.Switch;
 import android.widget.TextView;
 
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+
+import java.util.HashMap;
 import java.util.List;
 
 public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder> {
-    private List<Event> values;
+    private HashMap<String, Boolean> memberStatus;
+    //<id, status>
+    private HashMap<String, String> members;
+    //<id, name>
+    private String mId;
+    private String eventKey;
 
     // Provide a reference to the views for each data item
     // Complex data items may need more than one view per item, and
     // you provide access to all the views for a data item in a view holder
     public class ViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
-        public TextView eventName;
-        public TextView eventTime;
+        public TextView memberName;
+        public ImageView memberPicture;
+        public Switch memberSwitchStatus;
+
         private final Context context;
 
         public View layout;
@@ -30,25 +51,29 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
             super(v);
             context = v.getContext();
             layout = v;
-            eventName = v.findViewById(R.id.row_event_name);
-            eventTime = v.findViewById(R.id.row_event_time);
+            memberName = v.findViewById(R.id.status_member_name);
+            memberPicture = v.findViewById(R.id.status_member_picture);
+            memberSwitchStatus = v.findViewById(R.id.status_switch);
         }
     }
 
-    public void add(int position, Event item) {
-        values.add(position, item);
+    /*
+    public void add(int position, String item) {
         notifyItemInserted(position);
     }
 
     public void remove(int position) {
-        values.remove(position);
         notifyItemRemoved(position);
     }
-
+    */
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public AdapterStatus(List<Event> myDataset) {
-        values = myDataset;
+    public AdapterStatus(HashMap<String, Boolean> memberStatus, HashMap<String, String> members, String id, String eventKey)
+    {
+        this.memberStatus = memberStatus;
+        this.members = members;
+        this.mId = id;
+        this.eventKey = eventKey;
     }
 
     // Create new views (invoked by the layout manager)
@@ -56,28 +81,69 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
     public AdapterStatus.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-
-        View v = inflater.inflate(R.layout.row_layout, parent, false);
+        View v = inflater.inflate(R.layout.status_row_layout, parent, false);
         ViewHolder vh = new ViewHolder(v);
         return vh;
     }
 
-    //when clicked
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
-        // - get element from your dataset at this position
-        // - replace the contents of the view with that element
-        final Event event = values.get(position);
-        holder.eventName.setText(event.getEventName());
-        holder.eventTime.setText(event.getTime());
-        holder.eventName.setOnClickListener(new OnClickListener() {
+        String id = (String) members.keySet().toArray()[position];
+        final String name = members.get(id);
+        holder.memberName.setText(name);
+
+        StorageReference profileRef = FirebaseStorage.getInstance().getReference("profile_pictures");
+        StorageReference userRef = profileRef.child(id);
+
+        GlideApp.with(holder.context)
+                .load(userRef)
+                .into(holder.memberPicture);
+
+        Boolean status = memberStatus.get(id);
+        if(status==true){
+            holder.memberSwitchStatus.setChecked(true);
+            holder.memberSwitchStatus.setText("Going");
+        }
+
+        if(!id.equals(mId)){
+            holder.memberSwitchStatus.setClickable(false);
+        }
+        holder.memberSwitchStatus.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
-            public void onClick(View v) {
-                Intent i = new Intent(holder.context, ActivityEvent.class);
-                Bundle bundle = new Bundle();
-                bundle.putSerializable("event", event);
-                i.putExtras(bundle);
-                holder.context.startActivity(i);
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if(isChecked==false){
+                    holder.memberSwitchStatus.setChecked(false);
+                    holder.memberSwitchStatus.setText("Not Going");
+                    memberStatus.put(mId, false);
+                }
+                else{
+                    holder.memberSwitchStatus.setChecked(true);
+                    holder.memberSwitchStatus.setText("Going");
+                    memberStatus.put(mId, true);
+                }
+                updateFirebase();
+            }
+        });
+    }
+
+
+    private void updateFirebase(){
+        //send to firebase
+        final DatabaseReference eventsRef = FirebaseDatabase.getInstance().getReference().child("events");
+        //loop through all events to find the one
+        eventsRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot event: dataSnapshot.getChildren()){
+                    if(event.child("eventKey").getValue().toString().equals(eventKey)){
+                        eventsRef.child(event.getKey()).child("memberStatus").child(mId).setValue(memberStatus.get(mId));
+                    }
+                }
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
             }
         });
     }
@@ -85,9 +151,6 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
     // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
-        return values.size();
-    }
-    private void goToEvent(String eventKey){
-
+        return memberStatus.size();
     }
 }
