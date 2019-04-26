@@ -346,7 +346,6 @@ public class ActivitySignIn extends AppCompatActivity implements
 
             mStatusText.setText(R.string.signed_out);
         } else {
-            Log.d(">>>", "signed out");
             // Signed in
             mPhoneNumberViews.setVisibility(View.GONE);
             mSignedInViews.setVisibility(View.VISIBLE);

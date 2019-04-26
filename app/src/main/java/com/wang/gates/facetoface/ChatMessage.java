@@ -7,7 +7,7 @@ public class ChatMessage {
     private String messageText;
     private String messageUser;
     private String userID;
-    private long messageTime;
+    private String messageTime;
 
     public ChatMessage(String messageText, String messageUser, String userID) {
         this.messageText = messageText;
@@ -15,7 +15,7 @@ public class ChatMessage {
         this.userID = userID;
 
         // Initialize to current time
-        this.messageTime = new Date().getTime();
+        this.messageTime = "" + new Date().getTime();
     }
 
     public ChatMessage(String messageText, String messageUser, String userID, long time) {
@@ -24,7 +24,7 @@ public class ChatMessage {
         this.userID = userID;
 
         // Initialize to current time
-        this.messageTime = time;
+        this.messageTime = "" + time;
     }
 
 
@@ -41,9 +41,10 @@ public class ChatMessage {
         return messageUser;
     }
 
-    public long getMessageTime() {
+    public String getMessageTime() {
         return messageTime;
     }
+
     @Override
     public String toString() {
         return "message " + messageText + " user " + messageUser + " time " + messageTime ;

@@ -54,7 +54,7 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
         String message = chatMessage.getMessageText();
         String user = chatMessage.getMessageUser();
         String id = chatMessage.getUserID();
-        long time = chatMessage.getMessageTime();
+        long time = Long.parseLong(chatMessage.getMessageTime());
 
         //Log.d(">>>", "index " + index);
 

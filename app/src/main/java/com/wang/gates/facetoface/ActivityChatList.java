@@ -226,54 +226,56 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                         }
                         else{
                             //create the chat object
-                            final ArrayList<String> memberIds = new ArrayList<>();
-                            memberIds.add(id);
-                            for(String member : members) {
-                                String[] memberInfo = member.split("\\s+");
-                                final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-", "");
-
-                                DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
-                                databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                            DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
+                            databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                    ArrayList<String> memberIds = new ArrayList<>();
+                                    memberIds.add(id);
+                                    for(int i=0; i<members.size(); i++) {
+                                        String member = members.get(i);
+                                        String[] memberInfo = member.split("\\s+");
+                                        final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-", "");
+                                        //compare to all users, get the ones you want, stored in memberIds
                                         for (DataSnapshot user : dataSnapshot.getChildren()) {
                                             if (user.child("number").getValue().toString().equals(newMemberPhoneNumber)) {
                                                 String newChatMemberID = user.child("id").getValue().toString();
                                                 memberIds.add(newChatMemberID);
-                                                DatabaseReference newChatReference = FirebaseDatabase.getInstance()
-                                                        .getReference()
-                                                        .child("members")
-                                                        .push();
-                                                newChatKey = newChatReference.getKey();
-                                                Chat newChat = new Chat(chatNameNew, newChatKey, memberIds);
-                                                newChatReference.setValue(newChat);
-                                                //create messages object
-                                                Messages messages = new Messages(newChatKey, new ArrayList<ChatMessage>());
-                                                //add this chat to messages
-                                                FirebaseDatabase.getInstance()
-                                                        .getReference()
-                                                        .child("messages")
-                                                        .push()
-                                                        .setValue(messages);
-
-                                                    SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
-                                                    SharedPreferences.Editor editor = pref.edit();
-                                                    //default is to show notifications
-                                                    editor.putBoolean(newChatKey + "notifications", true);
-                                                    editor.commit();
                                             }
                                         }
                                     }
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                                    DatabaseReference newChatReference = FirebaseDatabase.getInstance()
+                                            .getReference()
+                                            .child("members")
+                                            .push();
+                                    newChatKey = newChatReference.getKey();
+                                    Chat newChat = new Chat(chatNameNew, newChatKey, memberIds);
+                                    newChatReference.setValue(newChat);
+                                    //create messages object
+                                    Messages messages = new Messages(newChatKey, new ArrayList<ChatMessage>());
+                                    //add this chat to messages
+                                    FirebaseDatabase.getInstance()
+                                            .getReference()
+                                            .child("messages")
+                                            .push()
+                                            .setValue(messages);
 
-                                    }
+                                    SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+                                    SharedPreferences.Editor editor = pref.edit();
+                                    //default is to show notifications
+                                    editor.putBoolean(newChatKey + "notifications", true);
+                                    editor.commit();
+                                }
+                                @Override
+                                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                }
                                 });
                             }
+
                             dialog.dismiss();
                             displayChatList();
                         }
-                    }
                 });
 
                 builderChat.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -297,7 +299,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot chat : dataSnapshot.getChildren()) {
                     GenericTypeIndicator<ArrayList<String>> t = new GenericTypeIndicator<ArrayList<String>>() {};
-                    ArrayList<String> members = (ArrayList<String>) chat.child("memberIds").getValue(t);
+                    ArrayList<String> members = chat.child("memberIds").getValue(t);
                     if(members.contains(id)) {
                         chatsArrayList.add((Chat) chat.getValue(Chat.class));
                     }
@@ -363,7 +365,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 for(DataSnapshot data: dataSnapshot.getChildren()){
                     if (data.getKey().equals(person.getId())) {
                         registered = true;
-                        Log.d(">>>", "person");
                         person.setName(data.child("name").getValue().toString());
                         getSupportActionBar().setTitle("Welcome " + person.getName());  // provide compatibility to all the versions
                     }

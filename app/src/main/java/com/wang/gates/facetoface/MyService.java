@@ -115,7 +115,7 @@ public class MyService extends Service {
         final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
         for(final String chatJsonKey: chatJsonKeys.keySet()){
             final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("messages").child(chatJsonKey);
-            chatRef.addChildEventListener(new ChildEventListener() {
+                chatRef.addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) { }
                 @Override
@@ -144,8 +144,6 @@ public class MyService extends Service {
                 HashMap<String,ChatMessage> map = dataSnapshot.getValue(t);
                 if(map.size()>0) {
                     ChatMessage lastMessage = map.get(new ArrayList<>(map.keySet()).get(0));
-                    Log.d(">>>", "" + lastMessage);
-
                     if(!lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
