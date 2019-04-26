@@ -1,4 +1,7 @@
 <resources>
+        <string name="channel_name">meetup</string>
+        <string name="channel_description">messaging channel</string>
+
         <string name="title_activity_list">ListActivity</string>
         <string name="title_activity_code_verification">ActivityCodeVerification</string>
 

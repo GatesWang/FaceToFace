@@ -48,6 +48,8 @@ import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Set;
+
 import static android.Manifest.permission.READ_CONTACTS;
 
 
@@ -423,6 +425,12 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         getUserInfo();
         setOnClick();
         newChatBehavior();
+        //start service
+        startService();
+    }
+
+    private void startService(){
+        startService(new Intent(this, MyService.class));
     }
 
     @Override
