@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
@@ -12,6 +13,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.view.animation.AccelerateInterpolator;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -154,8 +156,50 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.notification_options, android.R.layout.simple_spinner_item);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
-    }
+        final String notifyPreferenceKey = chat.getChatKey() + "notifications";
+        final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        final SharedPreferences.Editor editor = pref.edit();
+        boolean notify = pref.getBoolean(notifyPreferenceKey, true);
+        if(notify){
+            spinner.setSelection(getIndex(spinner, "On"));
+        }
+        else{
+            spinner.setSelection(getIndex(spinner, "Off"));
+        }
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                if(position==0){
+                    //turn on
+                    //default is to show notifications
+                    editor.putBoolean(notifyPreferenceKey, true);
+                    editor.commit();
+                    //Log.d(">>>", "" + pref.getBoolean(chat.getChatKey() + "notifications",true));
+                }
+                else if(position == 1){
+                    //turn off
+                    //default is to show notifications
+                    editor.putBoolean(notifyPreferenceKey, false);
+                    editor.commit();
+                    //Log.d(">>>", "" + pref.getBoolean(chat.getChatKey() + "notifications",true));
+                }
+            }
 
+            @Override
+            public void onNothingSelected(AdapterView<?> parentView) {
+            }
+
+        });
+    }
+    private int getIndex(Spinner spinner, String myString){
+        int index = 0;
+        for (int i=0;i<spinner.getCount();i++){
+            if (spinner.getItemAtPosition(i).equals(myString)){
+                index = i;
+            }
+        }
+        return index;
+    }
     private void getMembers(){
         DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {

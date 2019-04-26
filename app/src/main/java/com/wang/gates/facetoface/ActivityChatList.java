@@ -149,7 +149,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                 newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
-                        boolean doubleAdd = false;
                         final String newMemberString = newMemberInput.getText().toString();
                         if(newMemberString.length()>0) {
                             //checks to see if member is proper
@@ -256,6 +255,12 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                                         .child("messages")
                                                         .push()
                                                         .setValue(messages);
+
+                                                    SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+                                                    SharedPreferences.Editor editor = pref.edit();
+                                                    //default is to show notifications
+                                                    editor.putBoolean(newChatKey + "notifications", true);
+                                                    editor.commit();
                                             }
                                         }
                                     }

@@ -34,7 +34,6 @@ public class MyService extends Service {
     //<id, name>
     private HashMap<String, String> chatJsonKeys;
     //<jsonkey, key>
-    private HashMap<String,Boolean> chatNotifications;
 
     @Nullable
     @Override
@@ -112,16 +111,19 @@ public class MyService extends Service {
             }
         });
     }
-
     private void setListeners(){
-        for(String chatJsonKey: chatJsonKeys.keySet()){
+        final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        for(final String chatJsonKey: chatJsonKeys.keySet()){
             final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("messages").child(chatJsonKey);
             chatRef.addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) { }
                 @Override
                 public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                    getLastMessage(chatRef);
+                    boolean notify = pref.getBoolean(chatJsonKeys.get(chatJsonKey) + "notifications", true);
+                    if(notify==true){
+                        getLastMessage(chatRef);
+                    }
                 }
                 @Override
                 public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) { }
@@ -132,7 +134,6 @@ public class MyService extends Service {
             });
         }
     }
-
     //pass in chatRef, get last message
     private void getLastMessage(final DatabaseReference chatRef){
         Query lastQuery = chatRef.child("messages").orderByKey().limitToLast(1);
@@ -148,6 +149,7 @@ public class MyService extends Service {
                     if(!lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
+                        Log.d(">>>", "notify");
                         String key = chatJsonKeys.get(chatRef.getKey());
                         String chatName = chatKeys.get(key);
                         showNotification(chatName, lastMessage.toString());
