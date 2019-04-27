@@ -42,19 +42,22 @@ import java.util.HashSet;
 import static android.Manifest.permission.READ_CONTACTS;
 
 public class AlertCreateChat {
-    private AlertDialog.Builder builder;
-    private AdapterNewChatMember adapterNewChatMember;
-    private ArrayAdapter<String> potentialMemberAdapter;
-    private ArrayList<String> members;
+    protected AlertDialog.Builder builder;
+    protected AdapterNewChatMember adapterNewChatMember;
+    protected ArrayAdapter<String> potentialMemberAdapter;
+    protected ArrayList<String> members;
 
-    private Context context;
-    private static final int PERMISSIONS_REQUEST_READ_CONTACTS  = 100;
+    protected Context context;
+    protected static final int PERMISSIONS_REQUEST_READ_CONTACTS  = 100;
 
     private EditText chatNameEditText;
-    private AutoCompleteTextView newMemberInput;
-    private ListView membersListView;
-    private String id;
-    private ChatList chatList;
+    protected AutoCompleteTextView newMemberInput;
+    protected ListView membersListView;
+    protected String id;
+    protected ChatList chatList;
+
+    public AlertCreateChat(){
+    }
 
     public AlertCreateChat(final Context context, ChatList chatList) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
@@ -76,12 +79,6 @@ public class AlertCreateChat {
         newMemberInput.setInputType(InputType.TYPE_CLASS_TEXT);
         newMemberInput.setHint("Name");
 
-        getInfo();
-        members = new ArrayList<>();
-        adapterNewChatMember = new AdapterNewChatMember(members, context);
-        membersListView.setAdapter(adapterNewChatMember);
-        setItemClick();
-
         potentialMemberAdapter = new ArrayAdapter<>(
                 context,
                 android.R.layout.simple_dropdown_item_1line,
@@ -91,11 +88,19 @@ public class AlertCreateChat {
         layout.addView(chatNameEditText);
         layout.addView(newMemberInput);
         layout.addView(membersListView);
+
+        getInfo();
+        setItemClick();
         setUpPositive();
         setUpNegative();
         builder.setView(layout);
+
+
     }
-    private void setItemClick(){
+    protected void setItemClick(){
+        members = new ArrayList<>();
+        adapterNewChatMember = new AdapterNewChatMember(members, context);
+        membersListView.setAdapter(adapterNewChatMember);
         newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
@@ -133,7 +138,7 @@ public class AlertCreateChat {
             }
         });
     }
-    private void setUpPositive(){
+    protected void setUpPositive(){
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(final DialogInterface dialog, int which) {
@@ -197,7 +202,7 @@ public class AlertCreateChat {
             }
         });
     }
-    private void setUpNegative(){
+    protected void setUpNegative(){
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -217,7 +222,7 @@ public class AlertCreateChat {
         }
         return false;
     }
-    private ArrayList<String> getContactNames(){
+    protected ArrayList<String> getContactNames(){
         if (!mayRequestContacts()) {
             Log.d("ccc", "no cant get contacts");
             return null;
@@ -256,7 +261,7 @@ public class AlertCreateChat {
         names = new ArrayList<>(set);
         return names;
     }
-    private void getInfo(){
+    protected void getInfo(){
         SharedPreferences preferences = context.getApplicationContext().getSharedPreferences("MyPref",0);
         id = preferences.getString("id", null);
     }

@@ -51,6 +51,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         newChatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                alertDialog = new AlertCreateChat(ActivityChatList.this, chatList);
                 alertDialog.getBuilder().show();
             }
         });
@@ -161,7 +162,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         chatsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, chatsArrayList);
         chatsListView.setAdapter(chatsAdapter);
         chatList = new ChatList(ActivityChatList.this, chatsArrayList, chatsAdapter, chatsListView);
-        alertDialog = new AlertCreateChat(ActivityChatList.this, chatList);
 
         getUserInfo();
         setOnClick();

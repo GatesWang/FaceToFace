@@ -48,7 +48,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private HashMap<String, String> memberNumbers = new HashMap<>();
     private AdapterMember adapterMember;
     //stores <Name, Number>
-
+    private AlertAddMember addMember;
 
     private ArrayList<Chat> chatList;
     private String newName;
@@ -73,6 +73,8 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         renameChat.setOnClickListener(this);
         addMemberButton.setOnClickListener(this);
         getMembers();
+
+        addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
     }
 
     @Override
@@ -191,7 +193,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         }
         return index;
     }
-    private void getMembers(){
+    public void getMembers(){
         DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -233,7 +235,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         Log.d(">>>", "" + memberNumbers);
     }
     private void addMember(){
-
+        addMember.getBuilder().show();
     }
 
 }

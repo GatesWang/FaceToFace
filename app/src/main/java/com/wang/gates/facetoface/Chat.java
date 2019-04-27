@@ -31,6 +31,9 @@ public class Chat implements Serializable {
         return memberIds;
     }
 
+    public void setMemberIds(ArrayList<String> memberIds){
+        this.memberIds = memberIds;
+    }
     @Override
     public String toString() {
         return getChatName();
