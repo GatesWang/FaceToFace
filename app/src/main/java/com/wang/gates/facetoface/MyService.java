@@ -28,12 +28,16 @@ import java.util.HashMap;
 
 public class MyService extends Service {
     private final static String CHANNEL_ID = "meetup";
-    private int chanelId = 0;
+    private int notificationId = 0;
     private String id;
     private HashMap<String, String> chatKeys;
     //<id, name>
     private HashMap<String, String> chatJsonKeys;
     //<jsonkey, key>
+    private HashMap<String, ValueEventListener> listeners;
+
+    SharedPreferences preferences;
+    SharedPreferences.Editor editor;
 
     @Nullable
     @Override
@@ -46,7 +50,9 @@ public class MyService extends Service {
         //Toast.makeText(this, "on create", Toast.LENGTH_SHORT).show();
         chatKeys = new HashMap<>();
         chatJsonKeys = new HashMap<>();
-        //also adds listeners
+
+        preferences = getApplicationContext().getSharedPreferences("MyPref",0);
+        editor = preferences.edit();
     }
 
     @Override
@@ -62,10 +68,9 @@ public class MyService extends Service {
     }
 
     private void getChatKeys() {
-        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
-        id = pref.getString("id",null);
+        id = preferences.getString("id",null);
         if(id!=null){
-        //for each chat create a value event listener
+        //get all the chatKeys for each chat the user is in
             DatabaseReference messagesRef = FirebaseDatabase.getInstance().getReference().child("members");
             messagesRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
@@ -76,12 +81,12 @@ public class MyService extends Service {
                         for(String memberId: members){
                             if (memberId.equals(id)) {
                                 chatKeys.put(chat.child("chatKey").getValue().toString(), chat.child("chatName").getValue().toString());
+                                //<key, name>
                             }
                         }
                     }
                     getChatJsonKeys(chatKeys);
                 }
-
                 @Override
                 public void onCancelled(@NonNull DatabaseError databaseError) {
 
@@ -91,7 +96,7 @@ public class MyService extends Service {
     }
     private void getChatJsonKeys(final HashMap<String, String> chatKeys){
         DatabaseReference messagesRef = FirebaseDatabase.getInstance().getReference().child("messages");
-        //get references to chats
+        //get references to chats (jsonKey)
         messagesRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -115,7 +120,7 @@ public class MyService extends Service {
         final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
         for(final String chatJsonKey: chatJsonKeys.keySet()){
             final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("messages").child(chatJsonKey);
-                chatRef.addChildEventListener(new ChildEventListener() {
+            chatRef.addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) { }
                 @Override
@@ -136,7 +141,8 @@ public class MyService extends Service {
     }
     //pass in chatRef, get last message
     private void getLastMessage(final DatabaseReference chatRef){
-        Query lastQuery = chatRef.child("messages").orderByKey().limitToLast(1);
+        Query queryMessages = chatRef.child("messages").orderByKey();
+        Query lastQuery = queryMessages.limitToLast(1);
         lastQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -144,13 +150,20 @@ public class MyService extends Service {
                 HashMap<String,ChatMessage> map = dataSnapshot.getValue(t);
                 if(map.size()>0) {
                     ChatMessage lastMessage = map.get(new ArrayList<>(map.keySet()).get(0));
-                    if(!lastMessage.getUserID().equals(id)){
+                    if(true || !lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
-                        Log.d(">>>", "notify");
-                        String key = chatJsonKeys.get(chatRef.getKey());
-                        String chatName = chatKeys.get(key);
-                        showNotification(chatName, lastMessage.toString());
+                        boolean alreadyNotified = preferences.getBoolean("id"+notificationId, false);
+                        Log.d(">>>", "notify " + notificationId);
+                        Log.d(">>>", "notify " + alreadyNotified);
+                        if(!alreadyNotified){
+                            String key = chatJsonKeys.get(chatRef.getKey());
+                            String chatName = chatKeys.get(key);
+                            showNotification(chatName, lastMessage.toString());
+                        }
+                        else{
+                            notificationId++;
+                        }
                     }
                 }
             }
@@ -172,9 +185,9 @@ public class MyService extends Service {
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
-        notificationManager.notify(chanelId, builder.build());
-        chanelId++;
-        Toast.makeText(MyService.this, "new chat", Toast.LENGTH_SHORT).show();
+        notificationManager.notify(notificationId, builder.build());
+        editor.putBoolean("id" + notificationId, true);
+        editor.commit();
     }
 
     private void createNotificationChannel(){

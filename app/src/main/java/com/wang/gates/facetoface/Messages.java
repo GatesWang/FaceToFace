@@ -1,29 +1,38 @@
 package com.wang.gates.facetoface;
 
-import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Messages {
     private String chatId;
-    private ArrayList<ChatMessage> messages;
+    private HashMap<String, ChatMessage> messages;
+    private String messageId;
 
     public Messages(){
 
     }
 
-    public Messages(String chatId, ArrayList<ChatMessage> messages) {
+    public Messages(String chatId, HashMap<String, ChatMessage> messages) {
         this.chatId = chatId;
         this.messages = messages;
+        this.messageId = "ID0";
     }
 
     public String getChatId(){
         return chatId;
     }
-    public ArrayList<ChatMessage> getMessages(){
+    public HashMap<String, ChatMessage> getMessages(){
         return messages;
     }
 
     public void add(ChatMessage chatMessage){
-        this.messages.add(chatMessage);
+        int id = Integer.parseInt(messageId.substring(2));
+        id++;
+        this.messages.put(messageId, chatMessage);
+        messageId = "ID"+Integer.toString(id);
+    }
+
+    public String getMessageId(){
+        return messageId;
     }
     @Override
     public String toString() {

@@ -1,6 +1,7 @@
 package com.wang.gates.facetoface;
 
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,39 +9,41 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
-
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 
 public class AdapterMessage extends BaseAdapter implements ListAdapter {
-    private ArrayList<ChatMessage> list;
+    private HashMap<String, ChatMessage> map;
+    //<id,message>
     private Context context;
 
-    public AdapterMessage(ArrayList<ChatMessage> list, Context context) {
-        this.list = list;
+    public AdapterMessage(HashMap<String, ChatMessage> map, Context context) {
+        this.map = map;
         this.context = context;
     }
 
     @Override
     public int getCount() {
-        if(list==null){
+        if(map==null){
             return 0;
         }
-        return list.size();
+        return map.size();
     }
 
     @Override
     public Object getItem(int pos) {
-        return list.get(pos);
+        ArrayList<String> indicies = new ArrayList<String>(map.keySet());
+        Log.d(">>>", indicies + "");
+        return map.get(indicies.get(pos));
     }
 
     @Override
     public long getItemId(int pos) {
         return 0;
-        //just return 0 if your list items do not have an Id variable.
     }
 
     @Override
@@ -50,7 +53,13 @@ public class AdapterMessage extends BaseAdapter implements ListAdapter {
             LayoutInflater inflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.message, null);
         }
-        ChatMessage chatMessage = ((ChatMessage) list.get(position));
+        ArrayList<String> indiciesString = new ArrayList<>(map.keySet());
+        HashMap<Integer,String> indicies = new HashMap<>();
+        for(String sIndex: indiciesString){
+            int index = Integer.parseInt(sIndex.substring(2));
+            indicies.put(index, sIndex);
+        }
+        ChatMessage chatMessage = (ChatMessage) map.get(indicies.get(position+1));
         String message = chatMessage.getMessageText();
         String user = chatMessage.getMessageUser();
         String id = chatMessage.getUserID();

@@ -7,7 +7,6 @@ import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -26,6 +25,7 @@ import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class ActivityChat extends AppCompatActivity {
 
@@ -34,7 +34,7 @@ public class ActivityChat extends AppCompatActivity {
 
 
     private AdapterMessage messagesAdapter;
-    private ArrayList<ChatMessage> messagesArrayList = new ArrayList<ChatMessage>();
+    private HashMap<String, ChatMessage> messagesHashMap = new HashMap<String, ChatMessage>();
     private ListView messagesListView;
 
     private ArrayList<Chat> chatsArrayList = new ArrayList<>();
@@ -78,26 +78,28 @@ public class ActivityChat extends AppCompatActivity {
                     messagesReference.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            ArrayList<ChatMessage> messages = null;
+                            HashMap<String, ChatMessage> messages = null;
                             String chatMessagesKey = "";
                             for(DataSnapshot chatJson: dataSnapshot.getChildren()){
-
                                 if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){
+                                    String messagesId = chatJson.child("messageId").getValue().toString();
+                                    int id = Integer.parseInt(messagesId.substring(2));
+                                    id++;
                                     chatMessagesKey = chatJson.getKey();
                                     //get the messages
-                                    GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
-                                    messages = (ArrayList<ChatMessage>) chatJson.child("messages").getValue(t);
+                                    GenericTypeIndicator<HashMap<String, ChatMessage>> t = new GenericTypeIndicator<HashMap<String, ChatMessage>>(){};
+                                    messages = chatJson.child("messages").getValue(t);
                                     //add messages
                                     //if no prior messages
                                     if(messages==null){
-                                        messages = new ArrayList<>();
+                                        messages = new HashMap<String, ChatMessage>();
                                     }
-                                    messages.add(chatMessage);
+                                    messages.put("ID"+id, chatMessage);
+                                    //send back to firebase
+                                    messagesReference.child(chatMessagesKey).child("messages").setValue(messages);
+                                    messagesReference.child(chatMessagesKey).child("messageId").setValue("ID"+id);
                                 }
                             }
-                            //send back to firebase
-                            //set the arraylist as its new value
-                            messagesReference.child(chatMessagesKey).child("messages").setValue(messages);
                             // Clear the input
                             input.setText("");
                             displayChatMessages();
@@ -114,7 +116,7 @@ public class ActivityChat extends AppCompatActivity {
     }
 
     private void displayChatMessages() {
-        messagesArrayList = new ArrayList<>();
+        messagesHashMap = new HashMap<String, ChatMessage>();
         //get messages of this chat
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("messages");
         database.addListenerForSingleValueEvent(new ValueEventListener() {
@@ -123,11 +125,11 @@ public class ActivityChat extends AppCompatActivity {
                 for (DataSnapshot chatJson : dataSnapshot.getChildren()) {
                     if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){//if this is the chat that we want
                         //get messages
-                        GenericTypeIndicator<ArrayList<ChatMessage>> t = new GenericTypeIndicator<ArrayList<ChatMessage>>() {};
-                        messagesArrayList = chatJson.child("messages").getValue(t);
+                        GenericTypeIndicator<HashMap<String, ChatMessage>> t = new GenericTypeIndicator<HashMap<String, ChatMessage>>() {};
+                        messagesHashMap = chatJson.child("messages").getValue(t);
                     }
                 }
-                messagesAdapter = new AdapterMessage(messagesArrayList, ActivityChat.this);//update messages arraylist
+                messagesAdapter = new AdapterMessage(messagesHashMap, ActivityChat.this);//update messages
                 messagesListView.setAdapter(messagesAdapter);
             }
             @Override
@@ -169,7 +171,7 @@ public class ActivityChat extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat);
 
-        messagesArrayList = new ArrayList<ChatMessage>();
+        messagesHashMap = new HashMap<String, ChatMessage>();
         messagesListView = (ListView) findViewById(R.id.list_of_messages);
         messagesListView.setAdapter(messagesAdapter);
 

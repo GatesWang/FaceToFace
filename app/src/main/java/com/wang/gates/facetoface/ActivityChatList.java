@@ -47,6 +47,7 @@ import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -252,8 +253,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
                                     Chat newChat = new Chat(chatNameNew, newChatKey, memberIds);
                                     newChatReference.setValue(newChat);
                                     //create messages object
-                                    Messages messages = new Messages(newChatKey, new ArrayList<ChatMessage>());
-                                    //add this chat to messages
+                                    Messages messages = new Messages(newChatKey, new HashMap<String, ChatMessage>());
                                     FirebaseDatabase.getInstance()
                                             .getReference()
                                             .child("messages")
@@ -454,6 +454,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         SharedPreferences.Editor editor = pref.edit();
         editor.putString("id",person.getId());
         editor.commit();
+        startService();
     }
 
     @Override
