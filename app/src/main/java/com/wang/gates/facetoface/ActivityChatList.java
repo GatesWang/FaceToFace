@@ -1,23 +1,12 @@
 package com.wang.gates.facetoface;
 
-import android.Manifest;
-import android.app.AlertDialog;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.text.InputType;
 import android.util.Log;
 import android.view.ContextMenu;
 import android.view.Menu;
@@ -26,10 +15,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Toast;
 import com.firebase.ui.auth.AuthUI;
@@ -43,274 +29,29 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
-import com.google.i18n.phonenumbers.NumberParseException;
-import com.google.i18n.phonenumbers.PhoneNumberUtil;
-import com.google.i18n.phonenumbers.Phonenumber;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
-import static android.Manifest.permission.READ_CONTACTS;
+import java.util.ArrayList;
 
 
 public class ActivityChatList extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback{
-    private static final int PERMISSIONS_REQUEST_READ_CONTACTS  = 100;
     private static final int CREATE_ACCOUNT = 1;
     private ArrayAdapter<Chat> chatsAdapter;
-    private ArrayList<Chat> chatsArrayList = new ArrayList<>();
+    private ArrayList<Chat> chatsArrayList;
     private ListView chatsListView;
 
-    private FirebaseUser user;
     private User person;
-    private String id;
-    private String number;
     private Button newChatButton;
-    private String newChatKey;
 
     private int chatSelectedPosition = -1;
+    private AlertCreateChat alertDialog;
+    private ChatList chatList;
 
-    private AdapterNewChatMember adapterNewChatMember;
-    private ArrayAdapter<String> potentialMemberAdapter;
-    private ArrayList<String> members;
-
-    private boolean mayRequestContacts() {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-            return true;
-        }
-        if (ContextCompat.checkSelfPermission(this, READ_CONTACTS) == PackageManager.PERMISSION_GRANTED) {
-            return true;
-        }
-         else {
-            this.requestPermissions(new String[]{READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
-        }
-        return false;
-    }
-    private ArrayList<String> getContactNames(){
-        if (!mayRequestContacts()) {
-            Log.d("ccc", "no cant get contacts");
-            return null;
-        }
-        Log.d("ccc", "getting contacts");
-
-        ArrayList<String> names = null;
-        HashSet<String> set = new HashSet<String>();
-        ContentResolver cr = getContentResolver();
-        Cursor cur = cr.query(ContactsContract.Contacts.CONTENT_URI,null, null, null, null);
-        if (cur.getCount() > 0) {
-            while (cur.moveToNext()) {
-                String id = cur.getString(cur.getColumnIndex(ContactsContract.Contacts._ID));
-                Cursor cur1 = cr.query(
-                        ContactsContract.CommonDataKinds.Phone.CONTENT_URI, null,
-                        ContactsContract.CommonDataKinds.Phone.CONTACT_ID + " = ?",
-                        new String[]{id}, null);
-                while (cur1.moveToNext()) {
-                    //to get the contact names
-                    String name = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME));
-                    String number = cur1.getString(cur1.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER));
-                    PhoneNumberUtil phoneUtil = PhoneNumberUtil.getInstance();
-                    try {
-                        Phonenumber.PhoneNumber swissNumberProto = phoneUtil.parse(number, "US");
-                        number = phoneUtil.format(swissNumberProto, PhoneNumberUtil.PhoneNumberFormat.INTERNATIONAL);
-                    } catch (NumberParseException e) {
-                        System.err.println("NumberParseException was thrown: " + e.toString());
-                    }
-                    if(number!=null){
-                        set.add(name + " " + number);
-                    }
-                }
-                cur1.close();
-            }
-        }
-        names = new ArrayList<String>(set);
-        return names;
-    }
     private void newChatBehavior(){
         newChatButton = findViewById(R.id.new_chat);
         newChatButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                AlertDialog.Builder builderChat = new AlertDialog.Builder(ActivityChatList.this);
-                builderChat.setTitle("Create New Chat");
-
-                final LinearLayout layout = new LinearLayout(getApplicationContext());
-                layout.setOrientation(LinearLayout.VERTICAL);
-                final EditText chatNameEditText = new EditText(ActivityChatList.this);
-                final AutoCompleteTextView newMemberInput = new AutoCompleteTextView(ActivityChatList.this);
-                final ListView membersListView = new ListView(getApplicationContext());
-
-                chatNameEditText.setInputType(InputType.TYPE_CLASS_TEXT);
-                chatNameEditText.setHint("Chat name");
-                newMemberInput.setInputType(InputType.TYPE_CLASS_TEXT);
-                newMemberInput.setHint("Phone number");
-
-                members = new ArrayList<>();
-                adapterNewChatMember = new AdapterNewChatMember(members, getApplicationContext());
-                membersListView.setAdapter(adapterNewChatMember);
-                newMemberInput.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                    @Override
-                    public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
-                        final String newMemberString = newMemberInput.getText().toString();
-                        if(newMemberString.length()>0) {
-                            //checks to see if member is proper
-                            String[] info = newMemberString.split("\\s+");
-                            final String phoneNumber = info[1] + info[2].replaceAll("-","");
-                            DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
-                            databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                    boolean inDatabase = false;
-
-                                    for(DataSnapshot user: dataSnapshot.getChildren()){
-                                        if(user.child("number").getValue().equals(phoneNumber)){
-                                            //cant self add
-                                            if(phoneNumber.equals(person.getNumber())){
-                                                Toast.makeText(ActivityChatList.this, "You cannot add yourself, you are automatically added", Toast.LENGTH_SHORT).show();
-                                                inDatabase = true;
-                                                newMemberInput.setText("");
-                                                break;
-                                            }
-                                            //user is already in database, good
-                                            members.add(newMemberString);
-                                            adapterNewChatMember.notifyDataSetChanged();
-                                            newMemberInput.setText("");
-                                            inDatabase = true;
-                                        }
-                                    }
-                                    if(!inDatabase){
-                                        Toast.makeText(ActivityChatList.this,"This user is not registered for the app", Toast.LENGTH_LONG).show();
-                                        newMemberInput.setText("");
-                                    }
-
-                                }
-                                @Override
-                                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                                }
-                            });
-                        }
-                    }
-                });
-
-                potentialMemberAdapter = new ArrayAdapter<String>(
-                        ActivityChatList.this,
-                        android.R.layout.simple_dropdown_item_1line,
-                        getContactNames());
-                newMemberInput.setAdapter(potentialMemberAdapter);
-
-                layout.addView(chatNameEditText);
-                layout.addView(newMemberInput);
-                layout.addView(membersListView);
-                builderChat.setView(layout);
-
-                // Set up the buttons
-                builderChat.setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(final DialogInterface dialog, int which) {
-                        final String chatNameNew = chatNameEditText.getText().toString().trim();
-                        boolean chatExists = false;
-                        for(Chat chat: chatsArrayList){
-                            if(chat.getChatName().equals(chatNameNew)){
-                                chatExists = true;
-                            }
-                        }
-                        if(chatExists){
-                            Toast.makeText(ActivityChatList.this, "That chat already exists", Toast.LENGTH_SHORT).show();
-                            chatNameEditText.setText("");
-                        }
-                        else if(members.size()<1){
-                            Toast.makeText(ActivityChatList.this, "There needs to be at least one other member", Toast.LENGTH_SHORT).show();
-                        }
-                        else if(chatNameNew.length()<1){
-                            Toast.makeText(ActivityChatList.this, "The chat must have a valid name", Toast.LENGTH_SHORT).show();
-
-                        }
-                        else{
-                            //create the chat object
-                            DatabaseReference databaseUsers = FirebaseDatabase.getInstance().getReference().child("users");
-                            databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
-                                @Override
-                                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                                    ArrayList<String> memberIds = new ArrayList<>();
-                                    memberIds.add(id);
-                                    for(int i=0; i<members.size(); i++) {
-                                        String member = members.get(i);
-                                        String[] memberInfo = member.split("\\s+");
-                                        final String newMemberPhoneNumber = memberInfo[1] + memberInfo[2].replaceAll("-", "");
-                                        //compare to all users, get the ones you want, stored in memberIds
-                                        for (DataSnapshot user : dataSnapshot.getChildren()) {
-                                            if (user.child("number").getValue().toString().equals(newMemberPhoneNumber)) {
-                                                String newChatMemberID = user.child("id").getValue().toString();
-                                                memberIds.add(newChatMemberID);
-                                            }
-                                        }
-                                    }
-                                    DatabaseReference newChatReference = FirebaseDatabase.getInstance()
-                                            .getReference()
-                                            .child("members")
-                                            .push();
-                                    newChatKey = newChatReference.getKey();
-                                    Chat newChat = new Chat(chatNameNew, newChatKey, memberIds);
-                                    newChatReference.setValue(newChat);
-                                    //create messages object
-                                    Messages messages = new Messages(newChatKey, new HashMap<String, ChatMessage>());
-                                    FirebaseDatabase.getInstance()
-                                            .getReference()
-                                            .child("messages")
-                                            .push()
-                                            .setValue(messages);
-
-                                    SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
-                                    SharedPreferences.Editor editor = pref.edit();
-                                    //default is to show notifications
-                                    editor.putBoolean(newChatKey + "notifications", true);
-                                    editor.commit();
-                                }
-                                @Override
-                                public void onCancelled(@NonNull DatabaseError databaseError) {
-
-                                }
-                                });
-                            }
-
-                            dialog.dismiss();
-                            displayChatList();
-                        }
-                });
-
-                builderChat.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.cancel();
-                    }
-                });
-                builderChat.show();
-            }
-        });
-
-    }
-    private void displayChatList(){
-        chatsArrayList.clear();
-        chatsAdapter.clear();
-        //only get chats of the current user
-        DatabaseReference databaseMembers = FirebaseDatabase.getInstance().getReference("members");
-        databaseMembers.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                for (DataSnapshot chat : dataSnapshot.getChildren()) {
-                    GenericTypeIndicator<ArrayList<String>> t = new GenericTypeIndicator<ArrayList<String>>() {};
-                    ArrayList<String> members = chat.child("memberIds").getValue(t);
-                    if(members.contains(id)) {
-                        chatsArrayList.add((Chat) chat.getValue(Chat.class));
-                    }
-                }
-                chatsAdapter = new ArrayAdapter<Chat>(getApplicationContext(), android.R.layout.simple_list_item_1, chatsArrayList);
-                chatsListView.setAdapter(chatsAdapter);
-
-            }
-            @Override
-            public void onCancelled(DatabaseError error) {
-
+                alertDialog.getBuilder().show();
             }
         });
     }
@@ -334,8 +75,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     }
     private void getUserInfo(){
         person = (User) getIntent().getSerializableExtra("person");
-        number = person.getNumber();
-        id = person.getId();
         addUserToDatabase(person);
     }
     private void signOut() {
@@ -418,20 +157,15 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
         chatsListView = (ListView) findViewById(R.id.list_of_chats);
         registerForContextMenu(chatsListView);
-        chatsAdapter = new ArrayAdapter<Chat>(this, android.R.layout.simple_list_item_1, chatsArrayList);
+        chatsArrayList = new ArrayList<>();
+        chatsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, chatsArrayList);
         chatsListView.setAdapter(chatsAdapter);
-
-        user = FirebaseAuth.getInstance().getCurrentUser();
-
-        //if sdk version is greater than M and we dont not have permission, then request for permission
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
-        }
+        chatList = new ChatList(ActivityChatList.this, chatsArrayList, chatsAdapter, chatsListView);
+        alertDialog = new AlertCreateChat(ActivityChatList.this, chatList);
 
         getUserInfo();
         setOnClick();
         newChatBehavior();
-        //start service
         startService();
     }
 
@@ -443,27 +177,16 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     protected void onStart() {
         super.onStart();
         chatSelectedPosition = -1;
-        displayChatList();
+        chatList.displayChatList();
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putString("id",person.getId());
+        editor.commit();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
-        //shared preferences
-        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
-        SharedPreferences.Editor editor = pref.edit();
-        editor.putString("id",person.getId());
-        editor.commit();
-        startService();
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        if (requestCode == PERMISSIONS_REQUEST_READ_CONTACTS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-            }
-        }
     }
 
     @Override

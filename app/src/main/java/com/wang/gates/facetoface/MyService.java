@@ -34,7 +34,8 @@ public class MyService extends Service {
     //<id, name>
     private HashMap<String, String> chatJsonKeys;
     //<jsonkey, key>
-    private HashMap<String, ValueEventListener> listeners;
+    private HashMap<ChildEventListener, String> listeners;
+    //<listener, listenerId>
 
     SharedPreferences preferences;
     SharedPreferences.Editor editor;
@@ -44,29 +45,26 @@ public class MyService extends Service {
     public IBinder onBind(Intent intent) {
         return null;
     }
-
     @Override
     public void onCreate() {
         //Toast.makeText(this, "on create", Toast.LENGTH_SHORT).show();
         chatKeys = new HashMap<>();
         chatJsonKeys = new HashMap<>();
+        listeners = new HashMap<>();
 
         preferences = getApplicationContext().getSharedPreferences("MyPref",0);
         editor = preferences.edit();
     }
-
     @Override
     public void onDestroy() {
         Toast.makeText(this, "Service Stopped", Toast.LENGTH_SHORT).show();
     }
-
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //Toast.makeText(this, "On start", Toast.LENGTH_SHORT).show();
         getChatKeys();
         return Service.START_STICKY;
     }
-
     private void getChatKeys() {
         id = preferences.getString("id",null);
         if(id!=null){
@@ -117,29 +115,48 @@ public class MyService extends Service {
         });
     }
     private void setListeners(){
-        final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
         for(final String chatJsonKey: chatJsonKeys.keySet()){
-            final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("messages").child(chatJsonKey);
-            chatRef.addChildEventListener(new ChildEventListener() {
-                @Override
-                public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) { }
-                @Override
-                public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
-                    boolean notify = pref.getBoolean(chatJsonKeys.get(chatJsonKey) + "notifications", true);
-                    if(notify==true){
-                        getLastMessage(chatRef);
+
+            String key = chatJsonKeys.get(chatJsonKey);
+            //test if listener already exists
+            if(listeners.get(key)!=null){
+                continue;
+            }
+            else{
+                final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("messages").child(chatJsonKey);
+                ChildEventListener listener = new ChildEventListener() {
+                    @Override
+                    public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
                     }
-                }
-                @Override
-                public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) { }
-                @Override
-                public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) { }
-                @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) { }
-            });
+
+                    @Override
+                    public void onChildChanged(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                        Log.d(">>>", "listenid " + id);
+                        boolean notify = preferences.getBoolean(chatJsonKeys.get(chatJsonKey) + "notifications", true);
+                        if (notify == true) {
+                            String id = listeners.get(this);
+                            editor.putBoolean("id"+notificationId, true);
+                            getLastMessage(chatRef);
+                        }
+                    }
+
+                    @Override
+                    public void onChildRemoved(@NonNull DataSnapshot dataSnapshot) {
+                    }
+
+                    @Override
+                    public void onChildMoved(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+                    }
+                };
+                listeners.put(listener, chatJsonKeys.get(chatJsonKey));
+                chatRef.addChildEventListener(listener);
+            }
         }
     }
-    //pass in chatRef, get last message
     private void getLastMessage(final DatabaseReference chatRef){
         Query queryMessages = chatRef.child("messages").orderByKey();
         Query lastQuery = queryMessages.limitToLast(1);
@@ -153,17 +170,9 @@ public class MyService extends Service {
                     if(true || !lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
-                        boolean alreadyNotified = preferences.getBoolean("id"+notificationId, false);
-                        Log.d(">>>", "notify " + notificationId);
-                        Log.d(">>>", "notify " + alreadyNotified);
-                        if(!alreadyNotified){
-                            String key = chatJsonKeys.get(chatRef.getKey());
-                            String chatName = chatKeys.get(key);
-                            showNotification(chatName, lastMessage.toString());
-                        }
-                        else{
-                            notificationId++;
-                        }
+                        String key = chatJsonKeys.get(chatRef.getKey());
+                        String chatName = chatKeys.get(key);
+                        showNotification(chatName, lastMessage.toString());
                     }
                 }
             }
@@ -186,10 +195,7 @@ public class MyService extends Service {
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
 
         notificationManager.notify(notificationId, builder.build());
-        editor.putBoolean("id" + notificationId, true);
-        editor.commit();
     }
-
     private void createNotificationChannel(){
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
