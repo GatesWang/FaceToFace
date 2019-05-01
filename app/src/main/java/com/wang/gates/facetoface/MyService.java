@@ -2,7 +2,9 @@ package com.wang.gates.facetoface;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
+import android.app.TaskStackBuilder;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -165,7 +167,7 @@ public class MyService extends Service {
         }
     }
     private void getLastMessage(final DatabaseReference chatRef){
-        Query queryMessages = chatRef.child("messages").orderByKey();
+        Query queryMessages = chatRef.child("messages").orderByChild("messageTime");;
         Query lastQuery = queryMessages.limitToLast(1);
         lastQuery.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -174,12 +176,12 @@ public class MyService extends Service {
                 HashMap<String,ChatMessage> map = dataSnapshot.getValue(t);
                 if(map.size()>0) {
                     ChatMessage lastMessage = map.get(new ArrayList<>(map.keySet()).get(0));
-                    if(!lastMessage.getUserID().equals(id)){
+                    if(true || !lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
                         String key = chatJsonKeys.get(chatRef.getKey());
                         String chatName = chatKeys.get(key);
-                        showNotification(chatName, lastMessage.toString());
+                        showNotification(chatName, lastMessage.getMessageUser() + " : "  + lastMessage.getMessageText(), key);
                     }
                 }
             }
@@ -190,17 +192,29 @@ public class MyService extends Service {
             }
         });
     }
-    private void showNotification(String textTitle, String textContent) {
+    private void showNotification(String textTitle, String textContent, String chatKey) {
         createNotificationChannel();
 
+        // Create an Intent for the activity you want to start
+        Intent loginIntent = new Intent(this, ActivitySignIn.class);
+        //put in special bundle to let activity know to start another activity
+        loginIntent.putExtra("gotochat",true);
+        loginIntent.putExtra("chatKey",chatKey);
+
+        // Create the TaskStackBuilder and add the intent, which inflates the back stack
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addNextIntentWithParentStack(loginIntent);
+        // Get the PendingIntent containing the entire back stack
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setSmallIcon(R.drawable.add)
                 .setContentTitle(textTitle)
                 .setContentText(textContent)
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+        builder.setContentIntent(resultPendingIntent);
+        builder.setAutoCancel(true);
 
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-
         notificationManager.notify(notificationId, builder.build());
     }
     private void createNotificationChannel(){

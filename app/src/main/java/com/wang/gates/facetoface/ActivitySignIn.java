@@ -414,6 +414,12 @@ public class ActivitySignIn extends AppCompatActivity implements
         Bundle bundle = new Bundle();
         bundle.putSerializable("person", person);
         i.putExtras(bundle);
+        boolean gotochat = getIntent().getBooleanExtra("gotochat",false);
+        if(gotochat){
+            String chatKey = getIntent().getStringExtra("chatKey");
+            i.putExtra("gotochat",true);
+            i.putExtra("chatKey",chatKey);
+        }
         startActivity(i);
         finish();
     }

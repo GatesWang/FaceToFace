@@ -150,7 +150,13 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         }
         startActivity(i);
     }
-
+    private void goToChatNotification(ChatList chatList){
+        boolean gotochat = getIntent().getBooleanExtra("gotochat", false);
+        if(gotochat){
+            String chatKey = getIntent().getStringExtra("chatKey");
+            chatList.goToChatNotification(this, chatKey, person);
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -164,6 +170,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         chatList = new ChatList(ActivityChatList.this, chatsArrayList, chatsAdapter, chatsListView);
 
         getUserInfo();
+        goToChatNotification(chatList);
         setOnClick();
         newChatBehavior();
         startService();

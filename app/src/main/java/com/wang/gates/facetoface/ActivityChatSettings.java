@@ -101,8 +101,12 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         final LinearLayout layout = new LinearLayout(getApplicationContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         final EditText renameEditText = new EditText(ActivityChatSettings.this);
-
         renameEditText.setInputType(InputType.TYPE_CLASS_TEXT);
+        renameEditText.setText(chat.getChatName());
+        layout.addView(renameEditText);
+        builder.setView(layout);
+        // Set up the buttons
+
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(final DialogInterface dialog, int which) {
@@ -130,13 +134,6 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
 
                     }
                 });
-        renameEditText.setText(chat.getChatName());
-
-        layout.addView(renameEditText);
-        builder.setView(layout);
-
-        // Set up the buttons
-
             }
         });
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
