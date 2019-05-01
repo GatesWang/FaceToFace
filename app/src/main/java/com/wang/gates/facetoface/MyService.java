@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class MyService extends Service {
+    private boolean mRunning;
     private final static String CHANNEL_ID = "meetup";
     private int notificationId = 0;
     private String id;
@@ -54,6 +55,8 @@ public class MyService extends Service {
 
         preferences = getApplicationContext().getSharedPreferences("MyPref",0);
         editor = preferences.edit();
+        mRunning = false;
+
     }
     @Override
     public void onDestroy() {
@@ -62,8 +65,12 @@ public class MyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //Toast.makeText(this, "On start", Toast.LENGTH_SHORT).show();
-        getChatKeys();
-        return Service.START_STICKY;
+        if (!mRunning) {
+            mRunning = true;
+            getChatKeys();
+
+        }
+        return super.onStartCommand(intent, flags, startId);
     }
     private void getChatKeys() {
         id = preferences.getString("id",null);
@@ -167,7 +174,7 @@ public class MyService extends Service {
                 HashMap<String,ChatMessage> map = dataSnapshot.getValue(t);
                 if(map.size()>0) {
                     ChatMessage lastMessage = map.get(new ArrayList<>(map.keySet()).get(0));
-                    if(true || !lastMessage.getUserID().equals(id)){
+                    if(!lastMessage.getUserID().equals(id)){
                         //message not sent by user
                         //create notification
                         String key = chatJsonKeys.get(chatRef.getKey());

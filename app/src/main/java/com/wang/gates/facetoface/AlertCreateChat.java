@@ -106,6 +106,8 @@ public class AlertCreateChat {
             public void onItemClick(AdapterView<?> parent, View arg1, int pos, long id) {
                 final String newMemberString = newMemberInput.getText().toString();
                 if (newMemberString.length() > 0) {
+                    //make sure member is not a duplicate
+
                     //checks to see if member is proper
                     String[] info = newMemberString.split("\\s+");
                     final String phoneNumber = info[1] + info[2].replaceAll("-", "");
@@ -114,16 +116,25 @@ public class AlertCreateChat {
                         @Override
                         public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                             boolean inDatabase = false;
-
+                            boolean duplicate = false;
                             for (DataSnapshot user : dataSnapshot.getChildren()) {
                                 if (user.child("number").getValue().equals(phoneNumber)) {
-                                    members.add(newMemberString);
-                                    adapterNewChatMember.notifyDataSetChanged();
-                                    newMemberInput.setText("");
-                                    inDatabase = true;
+                                    //check for duplicates
+                                    if(members.contains(newMemberString)){
+                                        duplicate = true;
+                                        Toast.makeText(context, "This user is already added", Toast.LENGTH_LONG).show();
+                                        newMemberInput.setText("");
+                                    }
+                                    else{
+                                        members.add(newMemberString);
+                                        adapterNewChatMember.notifyDataSetChanged();
+                                        newMemberInput.setText("");
+                                        inDatabase = true;
+
+                                    }
                                 }
                             }
-                            if (!inDatabase) {
+                            if (!duplicate && !inDatabase) {
                                 Toast.makeText(context, "This user is not registered for the app", Toast.LENGTH_LONG).show();
                                 newMemberInput.setText("");
                             }
@@ -268,4 +279,6 @@ public class AlertCreateChat {
     public AlertDialog.Builder getBuilder(){
         return builder;
     }
+
+
 }

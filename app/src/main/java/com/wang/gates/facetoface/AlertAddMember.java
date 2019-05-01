@@ -9,6 +9,7 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -60,7 +61,7 @@ public class AlertAddMember extends AlertCreateChat{
                 databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                        ArrayList<String> memberIds = new ArrayList<>();
+                            ArrayList<String> memberIds = new ArrayList<>();
                         for (int i = 0; i < members.size(); i++) {
                             String member = members.get(i);
                             String[] memberInfo = member.split("\\s+");
@@ -73,14 +74,28 @@ public class AlertAddMember extends AlertCreateChat{
                                 }
                             }
                         }
-                        chat.getMemberIds().addAll(memberIds);
-                        DatabaseReference chatRef = FirebaseDatabase.getInstance()
-                                .getReference()
-                                .child("members")
-                                .child(chat.getChatKey());
+                        //make sure no duplicate members
+                        boolean duplicates = false;
+                        ArrayList oldMembers = chat.getMemberIds();
+                        for(int i=0; i<oldMembers.size(); i++){
+                            if(memberIds.contains(oldMembers.get(i))){
+                                duplicates = true;
+                            }
+                        }
+                        if(duplicates){
+                            Toast.makeText(context, "There was a duplicate user", Toast.LENGTH_LONG).show();
+                            dialog.dismiss();
+                        }
+                        else{
+                            chat.getMemberIds().addAll(memberIds);
+                            DatabaseReference chatRef = FirebaseDatabase.getInstance()
+                                    .getReference()
+                                    .child("members")
+                                    .child(chat.getChatKey());
 
-                        chatRef.setValue(chat);
-                        activityChatSettings.getMembers();
+                            chatRef.setValue(chat);
+                            activityChatSettings.getMembers();
+                        }
                     }
 
                     @Override
@@ -92,4 +107,5 @@ public class AlertAddMember extends AlertCreateChat{
             }
         });
     }
+
 }
