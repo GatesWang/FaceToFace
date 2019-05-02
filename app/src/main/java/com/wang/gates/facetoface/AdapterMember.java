@@ -150,6 +150,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                     if(member.getValue().toString().equals(id)){
                         chatRef.child(member.getKey()).removeValue();
                         remove(position);
+                        chat.getMemberIds().remove(id);
                         deleteChat();
                     }
                 }

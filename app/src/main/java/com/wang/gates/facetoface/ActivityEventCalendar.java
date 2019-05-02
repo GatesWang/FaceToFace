@@ -90,12 +90,12 @@ public class ActivityEventCalendar extends Activity{
                 user = (User) getIntent().getExtras().get("user");
                 Log.d(">>>", "" + user.getId());
             }
-        }
-        else{
-            //general
-            chat = null;
-            //hide button to make new event
-            newEventButton.setVisibility(View.INVISIBLE);
+            if(bundle.get("chat")==null){
+                //general
+                chat = null;
+                //hide button to make new event
+                newEventButton.setVisibility(View.INVISIBLE);
+            }
         }
     }
 
@@ -138,7 +138,7 @@ public class ActivityEventCalendar extends Activity{
                             }
                         }
                         else if(chat!=null && event.child("chat").child("chatKey").getValue().toString().equals(chat.getChatKey())){
-                            eventsArrayList.add((Event) event.getValue(Event.class));
+                            eventsArrayList.add(event.getValue(Event.class));
                         }
 
                     }

@@ -73,8 +73,6 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         renameChat.setOnClickListener(this);
         addMemberButton.setOnClickListener(this);
         getMembers();
-
-        addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
     }
 
     @Override
@@ -232,6 +230,7 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
         Log.d(">>>", "" + memberNumbers);
     }
     private void addMember(){
+        addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
         addMember.getBuilder().show();
     }
 
