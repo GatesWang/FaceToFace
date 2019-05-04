@@ -13,6 +13,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.SpannableString;
 import android.text.style.UnderlineSpan;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -140,7 +141,9 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
     }
 
     private void removeMember(final String id, final int position){
+        //remove person from members
         final DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
+        final DatabaseReference events =  FirebaseDatabase.getInstance().getReference().child("events");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -158,21 +161,40 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
             }
         });
+        //remove person from events
+        events.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for(DataSnapshot event: dataSnapshot.getChildren()){
+                    for(DataSnapshot member: event.child("memberStatus").getChildren()){
+                        if(member.getKey().equals(id)){
+                            member.getRef().setValue(null);
+                        }
+                    }
+                }
+            }
 
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
     }
 
-    private void deleteChat(final String id){
+    private void deleteChat(final String currentUserId){
         //tests to see if current chat has at least two members, then deletes chat
         DatabaseReference membersRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         final DatabaseReference members =  FirebaseDatabase.getInstance().getReference().child("members");
         final DatabaseReference messages =  FirebaseDatabase.getInstance().getReference().child("messages");
+        final DatabaseReference events =  FirebaseDatabase.getInstance().getReference().child("events");
+
         membersRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 long count = dataSnapshot.getChildrenCount();
                 SharedPreferences pref = activity.getSharedPreferences("MyPref", 0);
                 String spId = pref.getString("id",null);
-                if(spId.equals(id) || count<2){
+                if(spId.equals(currentUserId) || count<2){
                     if(count<2){
                         Toast.makeText(activity, "Chats must have at least two people, this chat will be deleted", Toast.LENGTH_SHORT).show();
                         //deletes from members
@@ -207,12 +229,30 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
                             }
                         });
-                        //deletes events
+                        //deletes all events created by this chat
+                        events.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                for(DataSnapshot event: dataSnapshot.getChildren()){
+                                    Log.d(">>>", chat.getChatKey());
+                                    Log.d(">>>", event.child("chat").child("chatKey").getValue().toString());
+
+                                    if(event.child("chat").child("chatKey").getValue().equals(chat.getChatKey())){
+                                        event.getRef().setValue(null);
+                                    }
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                            }
+                        });
 
                         //restarts
                         restart();
                     }
-                    else if(spId.equals(id)){
+                    else if(spId.equals(currentUserId)){
                         Toast.makeText(activity, "You removed yourself from this chat", Toast.LENGTH_SHORT).show();
                         restart();
                     }
