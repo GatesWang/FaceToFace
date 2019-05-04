@@ -40,7 +40,6 @@ public class ActivityEventCalendar extends Activity{
     private long dateLong;
 
     private final static int EVENT_CREATED = 9;
-    private final static int EVENT_DELETED = 10;
 
 
     @Override
@@ -83,6 +82,12 @@ public class ActivityEventCalendar extends Activity{
         displayEventList();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        displayEventList();
+    }
+
     private void getInfo(){
         Bundle bundle = getIntent().getExtras();
         if(bundle!=null){
@@ -119,24 +124,17 @@ public class ActivityEventCalendar extends Activity{
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(resultCode==Activity.RESULT_OK){
-            switch(requestCode) {
-                case EVENT_CREATED:
-                    displayEventList();
-                    break;
-                case EVENT_DELETED:
-                    displayEventList();
-                    break;
-            }
+            displayEventList();
         }
     }
 
     private void displayEventList(){
+        Log.d(">>>", "updating list");
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(dateLong);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
         String dateString = simpleDateFormat.format(date.getTime());
         final String toSearchFor = "Event date: " + dateString;
-        Log.d(">>>", toSearchFor);
 
         //populate with events with the date selected
         DatabaseReference events = FirebaseDatabase.getInstance().getReference("events");
@@ -144,15 +142,13 @@ public class ActivityEventCalendar extends Activity{
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 eventsArrayList.clear();
-                eventsAdapter = new AdapterEvent(eventsArrayList);
-                eventsRecyclerView.setAdapter(eventsAdapter);
                 for(DataSnapshot event: dataSnapshot.getChildren()){
                     if(event.child("date").getValue().toString().equals(toSearchFor)){
                         //make sure the chatKey matches
                         if(chat==null){
                             DataSnapshot members = event.child("memberStatus");
                             for(DataSnapshot member: members.getChildren()){
-                                if(member.getKey().toString().equals(user.getId())){//make sure the user matches
+                                if(member.getKey().equals(user.getId())){//make sure the user matches
                                     eventsArrayList.add((Event) event.getValue(Event.class));
                                 }
                             }
@@ -163,6 +159,8 @@ public class ActivityEventCalendar extends Activity{
 
                     }
                 }
+                eventsAdapter = new AdapterEvent(eventsArrayList);
+                eventsRecyclerView.setAdapter(eventsAdapter);
             }
 
             @Override

@@ -51,9 +51,18 @@
         android:id="@+id/create_event_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/delete_event"
         android:layout_margin="10dp"
         android:text="Save Event"
+        />
+
+    <Button
+        android:id="@+id/delete_event"
+        android:text="Remove Event"
+        android:layout_width="match_parent"
+        android:layout_margin="10dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
         />
 
 </RelativeLayout>

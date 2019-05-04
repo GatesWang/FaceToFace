@@ -42,6 +42,7 @@ public class ActivityEvent extends Activity {
     private EditText eventNameView;
     private Button setTimeButtonView;
     private Button createEventButtonView;
+    private Button removeEventButtonView;
 
     private RecyclerView statusRecyclerView;
     private LinearLayoutManager layoutManager;
@@ -65,6 +66,7 @@ public class ActivityEvent extends Activity {
         eventNameView = findViewById(R.id.new_event_name);
         setTimeButtonView = findViewById(R.id.set_event_time_button);
         createEventButtonView = findViewById(R.id.create_event_button);
+        removeEventButtonView = findViewById(R.id.delete_event);
 
         statusRecyclerView  = findViewById(R.id.status_recycler);
         layoutManager = new LinearLayoutManager(ActivityEvent.this);
@@ -98,6 +100,12 @@ public class ActivityEvent extends Activity {
                 saveEvent();
             }
         });
+        removeEventButtonView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                deleteEvent();
+            }
+        });
     }
 
     @Override
@@ -106,7 +114,6 @@ public class ActivityEvent extends Activity {
         populateMemberStatus();
         fillViews();
     }
-
     private void getInfo(){
         Intent i = getIntent();
         if(i.getSerializableExtra("event") != null){
@@ -122,7 +129,6 @@ public class ActivityEvent extends Activity {
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
         id = pref.getString("id", null);
     }
-
     private void fillViews(){
         if(event!=null){
             chatName.setText(chat.getChatName());
@@ -165,6 +171,9 @@ public class ActivityEvent extends Activity {
                     for(DataSnapshot e : dataSnapshot.getChildren()){
                         if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
                             database.child(e.getKey()).setValue(event);
+                            Intent i = new Intent();
+                            setResult(Activity.RESULT_OK,i);
+                            finish();
                         }
                     }
                 }
@@ -176,6 +185,7 @@ public class ActivityEvent extends Activity {
             });
         }
         else{
+            //creating event for the first time
             DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
             DatabaseReference eventFirebase = database.push();
             event.setEventKey(eventFirebase.getKey());
@@ -186,7 +196,32 @@ public class ActivityEvent extends Activity {
         }
     }
     private void deleteEvent(){
-        
+        if(this.event!=null){
+            final DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
+            database.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    for(DataSnapshot e : dataSnapshot.getChildren()){
+                        if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
+                            database.child(e.getKey()).setValue(null);
+                            Intent i = new Intent();
+                            setResult(Activity.RESULT_OK,i);
+                            finish();
+                        }
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
+        }
+        else{
+            Intent i = new Intent();
+            setResult(Activity.RESULT_OK,i);
+            finish();
+        }
     }
     private void populateMemberStatus(){
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("members").child(chat.getChatKey()).child("memberIds");
