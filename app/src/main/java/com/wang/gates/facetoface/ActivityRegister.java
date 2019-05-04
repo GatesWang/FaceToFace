@@ -105,8 +105,8 @@ public class ActivityRegister extends Activity {
         alert1.setView(layout);
         alert1.setTitle("New profile picture");
         alert1.show();
-
     }
+
     private void takePicture(){
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {

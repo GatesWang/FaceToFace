@@ -4,16 +4,15 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.widget.RecyclerView;
 import android.text.SpannableString;
 import android.text.style.UnderlineSpan;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -22,8 +21,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -32,7 +29,6 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder> {
@@ -42,7 +38,8 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
     //<name, id>
     private AdapterMember adapter;
     private Chat chat;
-    private Context context;
+    private Activity activity;
+    private ChatList chatList;
 
 
     private static final int CALL_REQUEST = 15;
@@ -81,11 +78,13 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
 
     // Provide a suitable constructor (depends on the kind of dataset)
-    public AdapterMember(HashMap<String, String> memberNumbers, HashMap<String, String> members, Chat chat) {
+    public AdapterMember(HashMap<String, String> memberNumbers, HashMap<String, String> members, Chat chat, ChatList chatList, Activity activity) {
         this.memberNumbers = memberNumbers;
         this.members = members;
         this.chat = chat;
         this.adapter = this;
+        this.chatList = chatList;
+        this.activity = activity;
     }
 
     // Create new views (invoked by the layout manager)
@@ -93,7 +92,6 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
     public AdapterMember.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
         LayoutInflater inflater = LayoutInflater.from(parent.getContext());
-        context = parent.getContext();
         View v = inflater.inflate(R.layout.member_row_layout, parent, false);
         ViewHolder vh = new ViewHolder(v);
         return vh;
@@ -151,7 +149,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                         chatRef.child(member.getKey()).removeValue();
                         remove(position);
                         chat.getMemberIds().remove(id);
-                        deleteChat();
+                        deleteChat(id);
                     }
                 }
             }
@@ -163,7 +161,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
     }
 
-    private void deleteChat(){
+    private void deleteChat(final String id){
         //tests to see if current chat has at least two members, then deletes chat
         DatabaseReference membersRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         final DatabaseReference members =  FirebaseDatabase.getInstance().getReference().child("members");
@@ -172,49 +170,52 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 long count = dataSnapshot.getChildrenCount();
-                if(count<2){
-                    Toast.makeText(context, "Chats must have at least two people, this chat will be deleted", Toast.LENGTH_SHORT).show();
-                    //deletes from members
-                    members.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            for(DataSnapshot chatJson: dataSnapshot.getChildren()){
-                                if(chatJson.child("chatKey").getValue().toString().equals(chat.getChatKey())){
-                                    members.child(chatJson.getKey()).removeValue();
+                SharedPreferences pref = activity.getSharedPreferences("MyPref", 0);
+                String spId = pref.getString("id",null);
+                if(spId.equals(id) || count<2){
+                    if(count<2){
+                        Toast.makeText(activity, "Chats must have at least two people, this chat will be deleted", Toast.LENGTH_SHORT).show();
+                        //deletes from members
+                        messages.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                for(DataSnapshot chatJson: dataSnapshot.getChildren()){
+                                    if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){
+                                        messages.child(chatJson.getKey()).removeValue();
+                                    }
                                 }
                             }
-                        }
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                        }
-                    });
-                    //deletes from messages
-                    messages.addListenerForSingleValueEvent(new ValueEventListener() {
-                        @Override
-                        public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            for(DataSnapshot chatJson: dataSnapshot.getChildren()){
-                                if(chatJson.child("chatId").getValue().toString().equals(chat.getChatKey())){
-                                    messages.child(chatJson.getKey()).removeValue();
+                            }
+                        });
+                        //deletes from messages
+                        members.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                                for(DataSnapshot chatJson: dataSnapshot.getChildren()){
+                                    if(chatJson.child("chatKey").getValue().toString().equals(chat.getChatKey())){
+                                        members.child(chatJson.getKey()).removeValue();
+                                    }
                                 }
                             }
-                        }
 
-                        @Override
-                        public void onCancelled(@NonNull DatabaseError databaseError) {
+                            @Override
+                            public void onCancelled(@NonNull DatabaseError databaseError) {
 
-                        }
-                    });
-                    //restarts
-                    Intent i = new Intent(context, ActivityChatList.class);
-                    FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-                    User person = new User(user);
-                    person.setNumber(user.getPhoneNumber());
-                    Bundle bundle = new Bundle();
-                    bundle.putSerializable("person", person);
-                    i.putExtras(bundle);
-                    context.startActivity(i);
+                            }
+                        });
+                        //deletes events
+
+                        //restarts
+                        restart();
+                    }
+                    else if(spId.equals(id)){
+                        Toast.makeText(activity, "You removed yourself from this chat", Toast.LENGTH_SHORT).show();
+                        restart();
+                    }
                 }
             }
 
@@ -227,26 +228,31 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
     }
 
-    private void callPhoneNumber(String number)
-    {
+    private void callPhoneNumber(String number) {
         try
         {
             if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M)
             {
-                if (ActivityCompat.checkSelfPermission(context, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
-                    ActivityCompat.requestPermissions((ActivityChatSettings) context, new String[]{Manifest.permission.CALL_PHONE}, CALL_REQUEST);
+                if (ActivityCompat.checkSelfPermission(activity, Manifest.permission.CALL_PHONE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions((ActivityChatSettings) activity, new String[]{Manifest.permission.CALL_PHONE}, CALL_REQUEST);
                     return;
                 }
             }
 
             Intent callIntent = new Intent(Intent.ACTION_CALL);
             callIntent.setData(Uri.parse("tel:" + number));
-            context.startActivity(callIntent);
+            activity.startActivity(callIntent);
         }
         catch (Exception ex)
         {
             ex.printStackTrace();
         }
     }
-
+    private void restart(){
+        activity.finish();
+        SharedPreferences pref = activity.getSharedPreferences("MyPref", 0);
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putBoolean("chatDeleted",true);
+        editor.commit();
+    }
 }

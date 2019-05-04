@@ -77,6 +77,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     private void getUserInfo(){
         person = (User) getIntent().getSerializableExtra("person");
         addUserToDatabase(person);
+        updateChatList();
     }
     private void signOut() {
         AuthUI.getInstance().signOut(this)
@@ -135,9 +136,9 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         //chatSelectedPosition is set in setOnClick()
         Chat chatSelected = chatsArrayList.get(chatSelectedPosition);
         i.putExtra("chat", chatSelected);
-        Bundle chatList = new Bundle();
-        chatList.putSerializable("chatList", chatsArrayList);
-        i.putExtras(chatList);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("chatsArrayList", chatsArrayList);
+        i.putExtras(bundle);
         startActivity(i);
     }
     private void goToEventCalendar(MenuItem item){
@@ -164,31 +165,42 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
 
         chatsListView = (ListView) findViewById(R.id.list_of_chats);
         registerForContextMenu(chatsListView);
-        chatsArrayList = new ArrayList<>();
-        chatsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, chatsArrayList);
-        chatsListView.setAdapter(chatsAdapter);
-        chatList = new ChatList(ActivityChatList.this, chatsArrayList, chatsAdapter, chatsListView);
 
         getUserInfo();
         goToChatNotification(chatList);
         setOnClick();
         newChatBehavior();
+
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        SharedPreferences.Editor editor = pref.edit();
+        editor.putString("id",person.getId());
+        editor.commit();
         startService();
     }
 
     private void startService(){
         startService(new Intent(this, MyService.class));
     }
-
+    private void updateChatList(){
+        chatsArrayList = new ArrayList<>();
+        chatsAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, chatsArrayList);
+        chatsListView.setAdapter(chatsAdapter);
+        chatList = new ChatList(ActivityChatList.this, chatsArrayList, chatsAdapter, chatsListView);
+        chatList.displayChatList();
+    }
     @Override
     protected void onStart() {
         super.onStart();
         chatSelectedPosition = -1;
-        chatList.displayChatList();
+        updateChatList();
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
         SharedPreferences.Editor editor = pref.edit();
-        editor.putString("id",person.getId());
-        editor.commit();
+        boolean chatDeleted = pref.getBoolean("chatDeleted",false);
+        if(chatDeleted){
+            chatList.displayChatList();
+            editor.putBoolean("chatDeleted",false);
+            editor.commit();
+        }
     }
 
     @Override

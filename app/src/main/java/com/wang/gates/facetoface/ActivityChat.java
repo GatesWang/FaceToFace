@@ -2,6 +2,7 @@ package com.wang.gates.facetoface;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -34,7 +35,7 @@ public class ActivityChat extends AppCompatActivity {
 
 
     private AdapterMessage messagesAdapter;
-    private HashMap<String, ChatMessage> messagesHashMap = new HashMap<String, ChatMessage>();
+    private HashMap<String, ChatMessage> messagesHashMap = new HashMap<>();
     private ListView messagesListView;
 
     private ArrayList<Chat> chatsArrayList = new ArrayList<>();
@@ -148,7 +149,6 @@ public class ActivityChat extends AppCompatActivity {
         chatsArrayList = (ArrayList<Chat>) intent.getExtras().get("chatList");
     }
 
-
     private void goToEventCalendar(){
         Intent i = new Intent(ActivityChat.this, ActivityEventCalendar.class);
         //a particular chat is selected
@@ -163,6 +163,7 @@ public class ActivityChat extends AppCompatActivity {
         Bundle chatList = new Bundle();
         chatList.putSerializable("chatList", chatsArrayList);
         i.putExtras(chatList);
+        i.putExtra("fromChat",true);
         startActivityForResult(i, CHAT_CHANGED);
     }
 
@@ -185,7 +186,12 @@ public class ActivityChat extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-
+        SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+        SharedPreferences.Editor editor = pref.edit();
+        boolean chatDeleted = pref.getBoolean("chatDeleted",false);
+        if(chatDeleted){
+            finish();
+        }
     }
 
     @Override

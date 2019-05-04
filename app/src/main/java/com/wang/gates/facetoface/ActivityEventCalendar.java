@@ -39,6 +39,10 @@ public class ActivityEventCalendar extends Activity{
     private String patternDate = "yyyy-MM-dd";
     private long dateLong;
 
+    private final static int EVENT_CREATED = 9;
+    private final static int EVENT_DELETED = 10;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -107,7 +111,23 @@ public class ActivityEventCalendar extends Activity{
         Bundle bundle = new Bundle();
         bundle.putSerializable("user", user);
         i.putExtras(bundle);
-        startActivity(i);
+        //start activity for result
+        startActivityForResult(i, EVENT_CREATED);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(resultCode==Activity.RESULT_OK){
+            switch(requestCode) {
+                case EVENT_CREATED:
+                    displayEventList();
+                    break;
+                case EVENT_DELETED:
+                    displayEventList();
+                    break;
+            }
+        }
     }
 
     private void displayEventList(){

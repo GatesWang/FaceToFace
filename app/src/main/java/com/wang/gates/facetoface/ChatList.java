@@ -16,10 +16,10 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.GenericTypeIndicator;
 import com.google.firebase.database.ValueEventListener;
 
-import java.lang.reflect.Array;
+import java.io.Serializable;
 import java.util.ArrayList;
 
-public class ChatList {
+public class ChatList implements Serializable {
     private ArrayList<Chat> chatsArrayList;
     private ArrayAdapter<Chat> chatsAdapter;
     private ListView chatsListView;
@@ -52,9 +52,9 @@ public class ChatList {
                         chatsArrayList.add(chat.getValue(Chat.class));
                     }
                 }
+                Log.d(">>>", chatsArrayList + "");
                 chatsAdapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, chatsArrayList);
                 chatsListView.setAdapter(chatsAdapter);
-
             }
             @Override
             public void onCancelled(DatabaseError error) {

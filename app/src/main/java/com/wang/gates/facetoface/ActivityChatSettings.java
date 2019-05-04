@@ -12,17 +12,13 @@ import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.util.Log;
 import android.view.View;
-import android.view.animation.AccelerateInterpolator;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -50,18 +46,18 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     //stores <Name, Number>
     private AlertAddMember addMember;
 
-    private ArrayList<Chat> chatList;
+    private ArrayList<Chat> chatsArrayList;
     private String newName;
 
     private AdapterNewChatMember adapterNewChatMember;
-
+    private ChatList chatList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_settings);
 
         getInfo();
-        adapterMember = new AdapterMember(memberNumbers, idToName, chat);
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat, chatList, ActivityChatSettings.this);
         setUpNotifications();
 
         nameLabel = findViewById(R.id.name_label);
@@ -90,8 +86,9 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private void getInfo(){
         Intent i = getIntent();
         chat = (Chat) i.getSerializableExtra("chat");
-        chatList =  (ArrayList<Chat>) i.getExtras().get("chatList");
+        chatsArrayList =  (ArrayList<Chat>) i.getExtras().get("chatsArrayList");
     }
+
     private void renameChat(){
         final AlertDialog.Builder builder = new AlertDialog.Builder(ActivityChatSettings.this);
         builder.setTitle("Rename chat");
@@ -225,9 +222,8 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private void updateRecyclerView(){
         layoutManager = new LinearLayoutManager(this);
         memberRecyclerView.setLayoutManager(layoutManager);
-        adapterMember = new AdapterMember(memberNumbers, idToName, chat);
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat, chatList, ActivityChatSettings.this);
         memberRecyclerView.setAdapter(adapterMember);
-        Log.d(">>>", "" + memberNumbers);
     }
     private void addMember(){
         addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);

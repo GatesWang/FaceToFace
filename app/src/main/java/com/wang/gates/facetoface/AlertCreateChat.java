@@ -201,15 +201,12 @@ public class AlertCreateChat {
 
                             chatList.displayChatList();
                         }
-
                         @Override
                         public void onCancelled(@NonNull DatabaseError databaseError) {
 
                         }
                     });
                 }
-
-                dialog.dismiss();
             }
         });
     }

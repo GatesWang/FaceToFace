@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -96,7 +95,7 @@ public class ActivityEvent extends Activity {
         createEventButtonView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                saveToFirebase();
+                saveEvent();
             }
         });
     }
@@ -150,7 +149,7 @@ public class ActivityEvent extends Activity {
             }
         }
     }
-    private void saveToFirebase(){
+    private void saveEvent(){
         //create Event object from views
         String eventName = eventNameView.getText().toString();
         String date = eventDateView.getText().toString();
@@ -181,10 +180,14 @@ public class ActivityEvent extends Activity {
             DatabaseReference eventFirebase = database.push();
             event.setEventKey(eventFirebase.getKey());
             database.push().setValue(event);
+            Intent i = new Intent();
+            setResult(Activity.RESULT_OK,i);
+            finish();
         }
-        finish();
     }
-
+    private void deleteEvent(){
+        
+    }
     private void populateMemberStatus(){
         DatabaseReference database = FirebaseDatabase.getInstance().getReference("members").child(chat.getChatKey()).child("memberIds");
         database.addListenerForSingleValueEvent(new ValueEventListener() {

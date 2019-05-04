@@ -9,8 +9,6 @@ public class User implements Serializable {
     private String number;
     private String id;
     private String name;
-    private Bitmap image;
-
     public User()
     {
 
@@ -29,15 +27,10 @@ public class User implements Serializable {
     public String getName(){
         return name;
     }
-    public Bitmap getImage(){
-        return image;
-    }
 
+    public void setId(String id){this.id = id;}
     public void setName(String name){
         this.name = name;
-    }
-    public void setImage(Bitmap image){
-        this.image = image;
     }
     public void setNumber(String number){
         this.number = number;

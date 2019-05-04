@@ -86,7 +86,7 @@ public class MyService extends Service {
                         GenericTypeIndicator<ArrayList<String>> t = new GenericTypeIndicator<ArrayList<String>>(){};
                         ArrayList<String> members = chat.child("memberIds").getValue(t);
                         for(String memberId: members){
-                            if (memberId.equals(id)) {
+                            if (memberId!=null && memberId.equals(id)) {
                                 chatKeys.put(chat.child("chatKey").getValue().toString(), chat.child("chatName").getValue().toString());
                                 //<key, name>
                             }
