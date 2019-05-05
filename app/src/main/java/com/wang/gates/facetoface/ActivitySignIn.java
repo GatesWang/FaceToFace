@@ -183,7 +183,8 @@ public class ActivitySignIn extends AppCompatActivity implements
 
         // [START_EXCLUDE]
         if (mVerificationInProgress && validatePhoneNumber()) {
-            startPhoneNumberVerification(mPhoneNumberField.getText().toString());
+            //assume in US
+            startPhoneNumberVerification("+1"+mPhoneNumberField.getText().toString());
         }
         // [END_EXCLUDE]
     }
@@ -360,7 +361,8 @@ public class ActivitySignIn extends AppCompatActivity implements
     }
 
     private boolean validatePhoneNumber() {
-        String phoneNumber = mPhoneNumberField.getText().toString();
+        //assume in US
+        String phoneNumber = "+1" + mPhoneNumberField.getText().toString();
         if (TextUtils.isEmpty(phoneNumber)) {
             mPhoneNumberField.setError("Invalid phone number.");
             return false;
@@ -388,7 +390,7 @@ public class ActivitySignIn extends AppCompatActivity implements
                 if (!validatePhoneNumber()) {
                     return;
                 }
-                startPhoneNumberVerification(mPhoneNumberField.getText().toString());
+                startPhoneNumberVerification("+1"+mPhoneNumberField.getText().toString());
                 break;
             case R.id.buttonVerifyPhone:
                 String code = mVerificationField.getText().toString();
@@ -399,7 +401,7 @@ public class ActivitySignIn extends AppCompatActivity implements
                 verifyPhoneNumberWithCode(mVerificationId, code);
                 break;
             case R.id.buttonResend:
-                resendVerificationCode(mPhoneNumberField.getText().toString(), mResendToken);
+                resendVerificationCode("+1"+mPhoneNumberField.getText().toString(), mResendToken);
                 break;
             case R.id.signOutButton:
                 signOut();

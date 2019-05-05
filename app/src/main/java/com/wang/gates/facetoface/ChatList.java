@@ -45,6 +45,8 @@ public class ChatList implements Serializable {
         databaseMembers.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
+                chatsArrayList.clear();
+                chatsAdapter.clear();
                 for (DataSnapshot chat : dataSnapshot.getChildren()) {
                     GenericTypeIndicator<ArrayList<String>> t = new GenericTypeIndicator<ArrayList<String>>() {};
                     ArrayList<String> members = chat.child("memberIds").getValue(t);
@@ -53,7 +55,7 @@ public class ChatList implements Serializable {
                     }
                 }
                 Log.d(">>>", chatsArrayList + "");
-                chatsAdapter = new ArrayAdapter<>(context, android.R.layout.simple_list_item_1, chatsArrayList);
+                chatsAdapter = new ArrayAdapter<Chat>(context, android.R.layout.simple_list_item_1, chatsArrayList);
                 chatsListView.setAdapter(chatsAdapter);
             }
             @Override
