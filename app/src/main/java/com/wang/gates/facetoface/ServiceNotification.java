@@ -28,9 +28,9 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class MyService extends Service {
+public class ServiceNotification extends Service {
     private boolean mRunning;
-    private final static String CHANNEL_ID = "meetup";
+    private final static String CHANNEL_ID = "notification";
     private int notificationId = 0;
     private String id;
     private HashMap<String, String> chatKeys;
@@ -72,7 +72,7 @@ public class MyService extends Service {
             getChatKeys();
 
         }
-        return super.onStartCommand(intent, flags, startId);
+        return START_STICKY;
     }
     private void getChatKeys() {
         id = preferences.getString("id",null);

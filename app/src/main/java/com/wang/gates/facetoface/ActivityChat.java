@@ -41,26 +41,6 @@ public class ActivityChat extends AppCompatActivity {
     private ArrayList<Chat> chatsArrayList = new ArrayList<>();
     private static final int CHAT_CHANGED = 10;
 
-    private void signOut() {
-        AuthUI.getInstance().signOut(this)
-                .addOnCompleteListener(new OnCompleteListener<Void>() {
-                    @Override
-                    public void onComplete(@NonNull Task<Void> task) {
-                        Toast.makeText(ActivityChat.this,
-                                "You have been signed out.",
-                                Toast.LENGTH_LONG)
-                                .show();
-
-                        // Close activity
-                        Intent login = new Intent(ActivityChat.this, ActivitySignIn.class);
-                        login.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        startActivity(login);
-                        finish();
-                    }
-                });
-
-    }
-
     private void newChatMessage(){
         FloatingActionButton fab = (FloatingActionButton)findViewById(R.id.new_message);
 

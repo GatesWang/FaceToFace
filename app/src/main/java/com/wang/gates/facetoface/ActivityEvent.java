@@ -1,18 +1,28 @@
 package com.wang.gates.facetoface;
 
 import android.app.Activity;
+import android.app.AlarmManager;
+import android.app.PendingIntent;
 import android.app.TimePickerDialog;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -23,9 +33,10 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 
-public class ActivityEvent extends Activity {
+public class ActivityEvent extends AppCompatActivity {
     private Chat chat;
     private String eventKey;
 
@@ -36,7 +47,6 @@ public class ActivityEvent extends Activity {
     private String patternDate = "yyyy-MM-dd";
     private Event event;
 
-    private TextView chatName;
     private TextView eventDateView;
     private TextView eventTimeView;
     private EditText eventNameView;
@@ -54,13 +64,14 @@ public class ActivityEvent extends Activity {
 
     private String id;
 
+    private DatabaseReference eventFirebase;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_event);
 
         //get views
-        chatName = findViewById(R.id.event_chat_name);
         eventDateView = findViewById(R.id.event__date);
         eventTimeView = findViewById(R.id.event__time);
         eventNameView = findViewById(R.id.new_event_name);
@@ -73,7 +84,8 @@ public class ActivityEvent extends Activity {
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
 
         getInfo();
-
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle(chat.getChatName());
         setTimeButtonView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -106,8 +118,59 @@ public class ActivityEvent extends Activity {
                 deleteEvent();
             }
         });
+        setUpNotifications();
     }
+    private void setUpNotifications(){
+        Spinner spinner = (Spinner) findViewById(R.id.reminder_spinner);
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this, R.array.reminder_on_off, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
 
+
+        final String reminderPreferenceKey;
+        if(event==null){
+            spinner.setSelection(getIndex(spinner, "On"));
+        }
+        else{
+            reminderPreferenceKey = event.getEventKey() + "reminders";
+            final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+            final SharedPreferences.Editor editor = pref.edit();
+            boolean notify = pref.getBoolean(reminderPreferenceKey, true);
+            String[] onOff = getResources().getStringArray(R.array.reminder_on_off);
+            if(notify){
+                spinner.setSelection(getIndex(spinner, onOff[0]));
+            }
+            else{
+                spinner.setSelection(getIndex(spinner, onOff[1]));
+            }
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                    if(position==0){
+                        //turn on
+                        editor.putBoolean(reminderPreferenceKey, true);
+                        editor.commit();
+                    }
+                    else if(position == 1){
+                        //turn off
+                        editor.putBoolean(reminderPreferenceKey, false);
+                        editor.commit();
+                    }
+                }
+                @Override
+                public void onNothingSelected(AdapterView<?> parentView) { }
+            });
+        }
+    }
+    private int getIndex(Spinner spinner, String myString){
+        int index = 0;
+        for (int i=0;i<spinner.getCount();i++){
+            if (spinner.getItemAtPosition(i).equals(myString)){
+                index = i;
+            }
+        }
+        return index;
+    }
     @Override
     protected void onStart() {
         super.onStart();
@@ -131,13 +194,11 @@ public class ActivityEvent extends Activity {
     }
     private void fillViews(){
         if(event!=null){
-            chatName.setText(chat.getChatName());
             eventDateView.setText(event.getDate());
             eventTimeView.setText(event.getTime());
             eventNameView.setText(event.getEventName());
         }
         else{
-            chatName.setText(chat.getChatName());
             date = Calendar.getInstance();
             date.setTimeInMillis(dateLong);
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
@@ -157,42 +218,94 @@ public class ActivityEvent extends Activity {
     }
     private void saveEvent(){
         //create Event object from views
-        String eventName = eventNameView.getText().toString();
-        String date = eventDateView.getText().toString();
-        String time = eventTimeView.getText().toString();
+        String eventName = eventNameView.getText().toString().trim();
+        String dateString = eventDateView.getText().toString();
+        String timeString = eventTimeView.getText().toString();
+        String dateSubstring = dateString.substring(12);
+        String timeSubstring = timeString.substring(12);
 
-        final Event event = new Event(eventName, date, time, memberStatus, chat);
-        if(this.event!=null){
-            event.setEventKey(this.event.getEventKey());
-            final DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
-            database.addListenerForSingleValueEvent(new ValueEventListener() {
-                @Override
-                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                    for(DataSnapshot e : dataSnapshot.getChildren()){
-                        if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
-                            database.child(e.getKey()).setValue(event);
-                            Intent i = new Intent();
-                            setResult(Activity.RESULT_OK,i);
-                            finish();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
+        Calendar cal = Calendar.getInstance();
+        try{
+            Date date = sdf.parse(dateSubstring+ " " + timeSubstring);
+            cal.setTime(date);
+        }
+        catch (Exception e){
+            Log.d(">>>",e.toString());
+        }
+
+        if(eventName.length()>=1){
+            final Event event = new Event(eventName, dateString, timeString, memberStatus, chat);
+            String reminderPreferenceKeyTemp = "";
+            if(this.event!=null){
+                event.setEventKey(this.event.getEventKey());
+                final DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
+                database.addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                        for(DataSnapshot e : dataSnapshot.getChildren()){
+                            if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
+                                database.child(e.getKey()).setValue(event);
+                                ActivityEventCalendar.displayEventList();
+                                finish();
+                            }
                         }
                     }
-                }
 
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                    }
+                });
+                reminderPreferenceKeyTemp = event.getEventKey() + "reminders";
+            }
+            else{
+                //creating event for the first time
+                DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
+                eventFirebase = database.push();
+                event.setEventKey(eventFirebase.getKey());
+                database.push().setValue(event);
+                reminderPreferenceKeyTemp = eventFirebase.getKey() + "reminders";
+            }
+            //write sharedpreferences for reminder
+            final String reminderPreferenceKey = reminderPreferenceKeyTemp;
+            Spinner spinner = (Spinner) findViewById(R.id.reminder_spinner);
+            final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
+            final SharedPreferences.Editor editor = pref.edit();
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                 @Override
-                public void onCancelled(@NonNull DatabaseError databaseError) {
-
+                public void onItemSelected(AdapterView<?> parentView, View selectedItemView, int position, long id) {
+                    if(position==0){
+                        //turn on
+                        editor.putBoolean(reminderPreferenceKey, true);
+                        editor.commit();
+                    }
+                    else if(position == 1){
+                        //turn off
+                        editor.putBoolean(reminderPreferenceKey, false);
+                        editor.commit();
+                    }
                 }
+                @Override
+                public void onNothingSelected(AdapterView<?> parentView) { }
             });
+
+            //create reminders
+            boolean notify = pref.getBoolean(reminderPreferenceKey, true);
+
+            if(notify){
+                Intent intent = new Intent(Intent.ACTION_EDIT);
+                intent.setType("vnd.android.cursor.item/event");
+                intent.putExtra("beginTime", cal.getTimeInMillis());
+                intent.putExtra("allDay", false);
+                intent.putExtra("title", event.getEventName());
+                startActivity(intent);
+            }
+            ActivityEventCalendar.displayEventList();
+            finish();
         }
         else{
-            //creating event for the first time
-            DatabaseReference database = FirebaseDatabase.getInstance().getReference("events");
-            DatabaseReference eventFirebase = database.push();
-            event.setEventKey(eventFirebase.getKey());
-            database.push().setValue(event);
-            Intent i = new Intent();
-            setResult(Activity.RESULT_OK,i);
-            finish();
+            Toast.makeText(this, "Event name is invalid", Toast.LENGTH_SHORT).show();
         }
     }
     private void deleteEvent(){
@@ -218,8 +331,7 @@ public class ActivityEvent extends Activity {
             });
         }
         else{
-            Intent i = new Intent();
-            setResult(Activity.RESULT_OK,i);
+            ActivityEventCalendar.displayEventList();
             finish();
         }
     }
@@ -286,6 +398,16 @@ public class ActivityEvent extends Activity {
             });
         }
     }
-
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 }
 

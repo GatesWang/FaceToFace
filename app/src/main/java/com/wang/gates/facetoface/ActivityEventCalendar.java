@@ -24,23 +24,20 @@ import java.util.Calendar;
 
 public class ActivityEventCalendar extends Activity{
 
-    private Chat chat;
-    private User user;
+    private static Chat chat;
+    private static User user;
 
     private CalendarView calendarView;
     private Button newEventButton;
 
-    private RecyclerView eventsRecyclerView;
+    private static RecyclerView eventsRecyclerView;
     private LinearLayoutManager layoutManager;
-    private AdapterEvent eventsAdapter;
-    private ArrayList<Event> eventsArrayList = new ArrayList<>();
+    private static AdapterEvent eventsAdapter;
+    private static ArrayList<Event> eventsArrayList = new ArrayList<>();
 
-    private String patternTime = "hh:mm a";
-    private String patternDate = "yyyy-MM-dd";
-    private long dateLong;
-
-    private final static int EVENT_CREATED = 9;
-
+    private static String patternTime = "hh:mm a";
+    private static String patternDate = "yyyy-MM-dd";
+    private static long dateLong;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -83,8 +80,8 @@ public class ActivityEventCalendar extends Activity{
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
         displayEventList();
     }
 
@@ -117,19 +114,11 @@ public class ActivityEventCalendar extends Activity{
         bundle.putSerializable("user", user);
         i.putExtras(bundle);
         //start activity for result
-        startActivityForResult(i, EVENT_CREATED);
+        startActivity(i);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if(resultCode==Activity.RESULT_OK){
-            displayEventList();
-        }
-    }
 
-    private void displayEventList(){
-        Log.d(">>>", "updating list");
+    public static void displayEventList(){
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(dateLong);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);

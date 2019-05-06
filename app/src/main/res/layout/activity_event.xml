@@ -4,13 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <TextView
-        android:id="@+id/event_chat_name"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        />
-
     <EditText
         android:id="@+id/new_event_name"
         android:layout_width="match_parent"
@@ -39,30 +32,44 @@
         android:text="Set time"
         />
 
+    <Spinner
+        android:id="@+id/reminder_spinner"
+        android:layout_below="@id/set_event_time_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        />
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/status_recycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/set_event_time_button"
+        android:layout_below="@id/reminder_spinner"
         />
 
-
-    <Button
-        android:id="@+id/create_event_button"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_above="@+id/delete_event"
-        android:layout_margin="10dp"
-        android:text="Save Event"
-        />
-
-    <Button
-        android:id="@+id/delete_event"
-        android:text="Remove Event"
-        android:layout_width="match_parent"
-        android:layout_margin="10dp"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        />
+        android:orientation="vertical"
+        >
+        <Button
+            android:id="@+id/create_event_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            android:text="Save Event"
+            />
+
+        <Button
+            android:id="@+id/delete_event"
+            android:text="Remove Event"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="10dp"
+            android:layout_marginRight="10dp"
+            />
+    </LinearLayout>
+
 
 </RelativeLayout>
