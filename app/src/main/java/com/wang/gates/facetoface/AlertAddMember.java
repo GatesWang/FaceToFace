@@ -95,15 +95,15 @@ public class AlertAddMember extends AlertCreateChat{
 
                             chatRef.setValue(chat);
                             activityChatSettings.getMembers();
+
                         }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError databaseError) {
-
+                        dialog.dismiss();
                     }
                 });
-                dialog.dismiss();
             }
         });
     }

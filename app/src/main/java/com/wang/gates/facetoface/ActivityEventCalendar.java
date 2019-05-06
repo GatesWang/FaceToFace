@@ -1,12 +1,13 @@
 package com.wang.gates.facetoface;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CalendarView;
@@ -22,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 
 
-public class ActivityEventCalendar extends Activity{
+public class ActivityEventCalendar extends AppCompatActivity {
 
     private static Chat chat;
     private static User user;
@@ -32,58 +33,13 @@ public class ActivityEventCalendar extends Activity{
 
     private static RecyclerView eventsRecyclerView;
     private LinearLayoutManager layoutManager;
-    private static AdapterEvent eventsAdapter;
+    private static AdapterTitleContent eventsAdapter;
     private static ArrayList<Event> eventsArrayList = new ArrayList<>();
+    private static AppCompatActivity activity;
 
     private static String patternTime = "hh:mm a";
     private static String patternDate = "yyyy-MM-dd";
     private static long dateLong;
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_event_calendar);
-
-        //assign views
-        calendarView = findViewById(R.id.calendarView);
-        newEventButton = findViewById(R.id.new_event);
-        eventsRecyclerView = findViewById(R.id.list_of_events);
-
-        //set up recyclerview
-        layoutManager = new LinearLayoutManager(this);
-        eventsRecyclerView.setLayoutManager(layoutManager);
-        eventsAdapter = new AdapterEvent(eventsArrayList);
-        eventsRecyclerView.setAdapter(eventsAdapter);
-
-        calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
-            @Override
-            public void onSelectedDayChange(CalendarView view, int year, int month, int day) {
-                Calendar calendar = Calendar.getInstance();
-                calendar.set(year, month , day, 0, 0);
-                dateLong = calendar.getTimeInMillis();
-                displayEventList();
-            }
-        });
-
-        newEventButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                goToEvent();
-            }
-        });
-
-
-
-        dateLong = calendarView.getDate();
-        getInfo();
-        displayEventList();
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        displayEventList();
-    }
 
     private void getInfo(){
         Bundle bundle = getIntent().getExtras();
@@ -104,7 +60,6 @@ public class ActivityEventCalendar extends Activity{
             }
         }
     }
-
     private void goToEvent(){
         Intent i = new Intent(ActivityEventCalendar.this, ActivityEvent.class);
         i.putExtra("eventKey","new");//this indicates that we are creating a new event
@@ -116,8 +71,6 @@ public class ActivityEventCalendar extends Activity{
         //start activity for result
         startActivity(i);
     }
-
-
     public static void displayEventList(){
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(dateLong);
@@ -142,13 +95,13 @@ public class ActivityEventCalendar extends Activity{
                                 }
                             }
                         }
-                        else if(chat!=null && event.child("chat").child("chatKey").getValue().toString().equals(chat.getChatKey())){
+                        else if(chat!=null && event.child("chatKey").getValue().toString().equals(chat.getChatKey())){
                             eventsArrayList.add(event.getValue(Event.class));
                         }
 
                     }
                 }
-                eventsAdapter = new AdapterEvent(eventsArrayList);
+                eventsAdapter = new AdapterTitleContent(eventsArrayList, activity);
                 eventsRecyclerView.setAdapter(eventsAdapter);
             }
 
@@ -159,5 +112,75 @@ public class ActivityEventCalendar extends Activity{
         });
     }
 
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_event_calendar);
+        activity = this;
+        //assign views
+        calendarView = findViewById(R.id.calendarView);
+        newEventButton = findViewById(R.id.new_event);
+        eventsRecyclerView = findViewById(R.id.list_of_events);
+
+        //set up recyclerview
+        layoutManager = new LinearLayoutManager(this);
+        eventsRecyclerView.setLayoutManager(layoutManager);
+        eventsAdapter = new AdapterTitleContent(eventsArrayList, ActivityEventCalendar.this);
+        eventsRecyclerView.setAdapter(eventsAdapter);
+
+        calendarView.setOnDateChangeListener(new CalendarView.OnDateChangeListener() {
+            @Override
+            public void onSelectedDayChange(CalendarView view, int year, int month, int day) {
+                Calendar calendar = Calendar.getInstance();
+                calendar.set(year, month , day, 0, 0);
+                dateLong = calendar.getTimeInMillis();
+                displayEventList();
+            }
+        });
+
+        newEventButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                goToEvent();
+            }
+        });
+
+
+
+        dateLong = calendarView.getDate();
+        getInfo();
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if(chat!=null){
+            getSupportActionBar().setTitle(chat.getChatName() + " calendar");
+        }
+        else{
+            getSupportActionBar().setTitle("calendar all chats");
+        }
+        displayEventList();
+    }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        displayEventList();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        activity = null;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 }
 

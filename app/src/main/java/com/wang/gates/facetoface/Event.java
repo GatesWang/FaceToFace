@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 public class Event implements Serializable {
     private String eventKey;
-    private Chat chat;
+    private String chatKey;
     private String eventName;
     private String date;
     private String time;
@@ -16,9 +16,9 @@ public class Event implements Serializable {
 
     }
 
-    public Event(String eventName, String date, String time, HashMap<String, Boolean> memberStatus, Chat chat) {
+    public Event(String eventName, String date, String time, HashMap<String, Boolean> memberStatus, String chatKey) {
         this.eventName = eventName;
-        this.chat = chat;
+        this.chatKey = chatKey;
         this.date = date;
         this.time = time;
         this.memberStatus = memberStatus;
@@ -30,8 +30,8 @@ public class Event implements Serializable {
     public String getDate(){
         return date;
     }
-    public Chat getChat(){
-        return chat;
+    public String getChatKey(){
+        return chatKey;
     }
 
     public String getEventKey() {

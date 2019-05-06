@@ -54,17 +54,15 @@ public class AlertCreateChat {
     protected AutoCompleteTextView newMemberInput;
     protected ListView membersListView;
     protected String id;
-    protected ChatList chatList;
 
     public AlertCreateChat(){
     }
 
-    public AlertCreateChat(final Context context, ChatList chatList) {
+    public AlertCreateChat(final Context context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CONTACTS) != PackageManager.PERMISSION_GRANTED) {
             ((Activity) context).requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
         }
         this.context = context;
-        this.chatList = chatList;
         builder = new AlertDialog.Builder(context);
         builder.setTitle("New Chat");
 
@@ -199,11 +197,12 @@ public class AlertCreateChat {
                             editor.putBoolean(newChatKey + "notifications", true);
                             editor.commit();
 
-                            chatList.displayChatList();
+                            //update chat list
+                            ((ActivityChatList)context).getChats();
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError databaseError) {
-
+                            dialog.dismiss();
                         }
                     });
                 }

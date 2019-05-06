@@ -34,11 +34,7 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
     private String mId;
     private String eventKey;
 
-    // Provide a reference to the views for each data item
-    // Complex data items may need more than one view per item, and
-    // you provide access to all the views for a data item in a view holder
     public class ViewHolder extends RecyclerView.ViewHolder {
-        // each data item is just a string in this case
         public TextView memberName;
         public ImageView memberPicture;
         public Switch memberSwitchStatus;
@@ -57,17 +53,7 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
         }
     }
 
-    /*
-    public void add(int position, String item) {
-        notifyItemInserted(position);
-    }
 
-    public void remove(int position) {
-        notifyItemRemoved(position);
-    }
-    */
-
-    // Provide a suitable constructor (depends on the kind of dataset)
     public AdapterStatus(HashMap<String, Boolean> memberStatus, HashMap<String, String> members, String id, String eventKey)
     {
         this.memberStatus = memberStatus;
@@ -76,7 +62,6 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
         this.eventKey = eventKey;
     }
 
-    // Create new views (invoked by the layout manager)
     @Override
     public AdapterStatus.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
@@ -121,13 +106,12 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
                     holder.memberSwitchStatus.setText("Going");
                     memberStatus.put(mId, true);
                 }
-                updateFirebase();
             }
         });
     }
 
 
-    private void updateFirebase(){
+    public void updateFirebase(){
         //send to firebase
         final DatabaseReference eventsRef = FirebaseDatabase.getInstance().getReference().child("events");
         //loop through all events to find the one
@@ -148,7 +132,6 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
         });
     }
 
-    // Return the size of your dataset (invoked by the layout manager)
     @Override
     public int getItemCount() {
         return memberStatus.size();

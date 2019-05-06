@@ -7,10 +7,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.InputType;
 import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -29,11 +31,10 @@ import com.google.firebase.database.ValueEventListener;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-public class ActivityChatSettings extends Activity implements  View.OnClickListener{
+public class ActivityChatSettings extends AppCompatActivity implements  View.OnClickListener{
     private Chat chat;
 
     private Button renameChat;
-    private TextView nameLabel;
 
     private ArrayList<String> memberIds = new ArrayList<>();
     private HashMap<String, String> idToName = new HashMap<String, String>();
@@ -50,25 +51,25 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private String newName;
 
     private AdapterNewChatMember adapterNewChatMember;
-    private ChatList chatList;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chat_settings);
 
         getInfo();
-        adapterMember = new AdapterMember(memberNumbers, idToName, chat, chatList, ActivityChatSettings.this);
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat, ActivityChatSettings.this);
         setUpNotifications();
 
-        nameLabel = findViewById(R.id.name_label);
         renameChat = findViewById(R.id.chat_rename);
         memberRecyclerView = findViewById(R.id.members_list);
         addMemberButton = findViewById(R.id.add_member);
-        nameLabel.setText(chat.getChatName());
 
         renameChat.setOnClickListener(this);
         addMemberButton.setOnClickListener(this);
         getMembers();
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle(chat.getChatName() + " settings");
     }
 
     @Override
@@ -114,10 +115,10 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
                             if(chatJson.child("chatKey").getValue().toString().equals(chat.getChatKey())){//find the chat we want
                                 String chatJsonKey = chatJson.getKey();
                                 membersRef.child(chatJsonKey).child("chatName").setValue(chatNameNew);
-                                nameLabel.setText(chatNameNew);
                                 newName = chatNameNew;
                                 Intent returnIntent = new Intent();
                                 returnIntent.putExtra("chatnewname", newName);
+                                getSupportActionBar().setTitle(newName + " settings");
                                 setResult(Activity.RESULT_OK, returnIntent);
                             }
                         }
@@ -222,12 +223,22 @@ public class ActivityChatSettings extends Activity implements  View.OnClickListe
     private void updateRecyclerView(){
         layoutManager = new LinearLayoutManager(this);
         memberRecyclerView.setLayoutManager(layoutManager);
-        adapterMember = new AdapterMember(memberNumbers, idToName, chat, chatList, ActivityChatSettings.this);
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat, ActivityChatSettings.this);
         memberRecyclerView.setAdapter(adapterMember);
     }
     private void addMember(){
         addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
         addMember.getBuilder().show();
     }
-
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case android.R.id.home:
+                finish();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
 }

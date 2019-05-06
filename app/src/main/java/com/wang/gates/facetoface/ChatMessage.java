@@ -47,6 +47,6 @@ public class ChatMessage {
 
     @Override
     public String toString() {
-        return "message " + messageText + " user " + messageUser + " time " + messageTime ;
+        return messageUser + " : " + messageText;
     }
 }

@@ -1,75 +1,82 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    >
 
     <EditText
         android:id="@+id/new_event_name"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/new_event_name"
         />
 
-    <TextView
-        android:id="@+id/event__date"
+    <LinearLayout
+        android:id="@+id/container_date_time"
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/new_event_name"
-        />
-    <TextView
-        android:id="@+id/event__time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/event__date"
-    />
+        android:layout_height="wrap_content">
+        <Button
+            android:id="@+id/event_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            />
 
-    <Button
-        android:id="@+id/set_event_time_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/event__time"
-        android:text="Set time"
-        />
+        <Button
+            android:id="@+id/event_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            />
+
+    </LinearLayout>
 
     <Spinner
         android:id="@+id/reminder_spinner"
-        android:layout_below="@id/set_event_time_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_marginBottom="30dp"
         />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/status_recycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/reminder_spinner"
+        android:layout_weight="0.5"
         />
 
     <LinearLayout
+        android:id="@+id/container_save_delete"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:orientation="vertical"
+        android:layout_margin="10dp"
+        android:orientation="horizontal"
         >
         <Button
             android:id="@+id/create_event_button"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_weight="0.5"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
-            android:text="Save Event"
+            android:text="Save"
             />
 
         <Button
             android:id="@+id/delete_event"
-            android:text="Remove Event"
-            android:layout_width="match_parent"
+            android:text="Delete"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_weight="0.5"
             android:layout_marginLeft="10dp"
             android:layout_marginRight="10dp"
             />
     </LinearLayout>
 
 
-</RelativeLayout>
+</LinearLayout>

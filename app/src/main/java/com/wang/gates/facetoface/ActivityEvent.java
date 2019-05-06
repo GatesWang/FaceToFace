@@ -47,10 +47,9 @@ public class ActivityEvent extends AppCompatActivity {
     private String patternDate = "yyyy-MM-dd";
     private Event event;
 
-    private TextView eventDateView;
-    private TextView eventTimeView;
+    private Button eventDateView;
+    private Button eventTimeView;
     private EditText eventNameView;
-    private Button setTimeButtonView;
     private Button createEventButtonView;
     private Button removeEventButtonView;
 
@@ -63,8 +62,9 @@ public class ActivityEvent extends AppCompatActivity {
     //<name, id>
 
     private String id;
-
     private DatabaseReference eventFirebase;
+    private String[] onOff;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,10 +72,9 @@ public class ActivityEvent extends AppCompatActivity {
         setContentView(R.layout.activity_event);
 
         //get views
-        eventDateView = findViewById(R.id.event__date);
-        eventTimeView = findViewById(R.id.event__time);
+        eventDateView = findViewById(R.id.event_date);
+        eventTimeView = findViewById(R.id.event_time);
         eventNameView = findViewById(R.id.new_event_name);
-        setTimeButtonView = findViewById(R.id.set_event_time_button);
         createEventButtonView = findViewById(R.id.create_event_button);
         removeEventButtonView = findViewById(R.id.delete_event);
 
@@ -83,10 +82,11 @@ public class ActivityEvent extends AppCompatActivity {
         layoutManager = new LinearLayoutManager(ActivityEvent.this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
 
+        onOff = getResources().getStringArray(R.array.reminder_on_off);
+
         getInfo();
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(chat.getChatName());
-        setTimeButtonView.setOnClickListener(new View.OnClickListener() {
+        eventTimeView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 // Launch Time Picker Dialog
@@ -129,14 +129,13 @@ public class ActivityEvent extends AppCompatActivity {
 
         final String reminderPreferenceKey;
         if(event==null){
-            spinner.setSelection(getIndex(spinner, "On"));
+            spinner.setSelection(getIndex(spinner, onOff[1]));
         }
         else{
             reminderPreferenceKey = event.getEventKey() + "reminders";
             final SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0);
             final SharedPreferences.Editor editor = pref.edit();
-            boolean notify = pref.getBoolean(reminderPreferenceKey, true);
-            String[] onOff = getResources().getStringArray(R.array.reminder_on_off);
+            boolean notify = pref.getBoolean(reminderPreferenceKey, false);
             if(notify){
                 spinner.setSelection(getIndex(spinner, onOff[0]));
             }
@@ -174,31 +173,50 @@ public class ActivityEvent extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        populateMemberStatus();
-        fillViews();
     }
     private void getInfo(){
         Intent i = getIntent();
-        if(i.getSerializableExtra("event") != null){
+        if(i.getSerializableExtra("event") != null){//the event already exists
             event = (Event)i.getSerializableExtra("event");
-            chat = event.getChat();
+            //get reference to chat object
+            final String chatKey = event.getChatKey();
+            DatabaseReference members = FirebaseDatabase.getInstance().getReference().child("members");
+            members.addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                    for(DataSnapshot chatJson: dataSnapshot.getChildren()){
+                        if(chatJson.child("chatKey").getValue().toString().equals(chatKey)){
+                            chat = chatJson.getValue(Chat.class);
+                            getSupportActionBar().setTitle("" + chat);
+                            fillViews();
+                        }
+                    }
+                }
+
+                @Override
+                public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                }
+            });
             eventKey = event.getEventKey();
         }
-        else{
+        else{//event doesnt exist yet
             chat = (Chat) i.getSerializableExtra("chat");
             dateLong = i.getLongExtra("dateLong", 0);
             eventKey = i.getStringExtra("eventKey");
+            fillViews();
         }
         SharedPreferences pref = getApplicationContext().getSharedPreferences("MyPref", 0); // 0 - for private mode
         id = pref.getString("id", null);
     }
     private void fillViews(){
+        populateMemberStatus();
         if(event!=null){
             eventDateView.setText(event.getDate());
             eventTimeView.setText(event.getTime());
             eventNameView.setText(event.getEventName());
         }
-        else{
+        else{//new event
             date = Calendar.getInstance();
             date.setTimeInMillis(dateLong);
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
@@ -235,7 +253,7 @@ public class ActivityEvent extends AppCompatActivity {
         }
 
         if(eventName.length()>=1){
-            final Event event = new Event(eventName, dateString, timeString, memberStatus, chat);
+            final Event event = new Event(eventName, dateString, timeString, memberStatus, chat.getChatKey());
             String reminderPreferenceKeyTemp = "";
             if(this.event!=null){
                 event.setEventKey(this.event.getEventKey());
@@ -291,7 +309,7 @@ public class ActivityEvent extends AppCompatActivity {
             });
 
             //create reminders
-            boolean notify = pref.getBoolean(reminderPreferenceKey, true);
+            boolean notify = pref.getBoolean(reminderPreferenceKey, false);
 
             if(notify){
                 Intent intent = new Intent(Intent.ACTION_EDIT);
@@ -301,6 +319,7 @@ public class ActivityEvent extends AppCompatActivity {
                 intent.putExtra("title", event.getEventName());
                 startActivity(intent);
             }
+            statusAdapter.updateFirebase();
             ActivityEventCalendar.displayEventList();
             finish();
         }
@@ -317,11 +336,10 @@ public class ActivityEvent extends AppCompatActivity {
                     for(DataSnapshot e : dataSnapshot.getChildren()){
                         if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
                             database.child(e.getKey()).setValue(null);
-                            Intent i = new Intent();
-                            setResult(Activity.RESULT_OK,i);
-                            finish();
                         }
                     }
+                    ActivityEventCalendar.displayEventList();
+                    finish();
                 }
 
                 @Override
@@ -343,6 +361,8 @@ public class ActivityEvent extends AppCompatActivity {
                 for(final DataSnapshot member: dataSnapshot.getChildren()){
                     memberStatus.put(member.getValue().toString(), false);
                     //<id, status>
+
+                    //fills out members
                     final DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users");
                     userRef.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
@@ -369,7 +389,6 @@ public class ActivityEvent extends AppCompatActivity {
             }
         });
     }
-
     private void updateRecyclerView(){
         layoutManager = new LinearLayoutManager(this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
@@ -377,16 +396,21 @@ public class ActivityEvent extends AppCompatActivity {
         statusAdapter = new AdapterStatus(memberStatus, members, id, event.getEventKey());
         statusRecyclerView.setAdapter(statusAdapter);
     }
-
     private void getStatus(){
-        if(!eventKey.equals("new")){//not a new event
+        if(eventKey.equals("new")){
+
+        }
+        else{
             DatabaseReference eventsRef = FirebaseDatabase.getInstance().getReference("events");
             eventsRef.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override
                 public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                     for(DataSnapshot event: dataSnapshot.getChildren()){
                         if(event.child("eventKey").getValue().toString().equals(eventKey)){
-                            memberStatus = (HashMap) event.child("memberStatus").getValue();
+                            HashMap<String,Boolean> membersStatusTemp = (HashMap) event.child("memberStatus").getValue();
+                            for(String s: membersStatusTemp.keySet()){
+                                memberStatus.put(s,membersStatusTemp.get(s));
+                            }
                             updateRecyclerView();
                         }
                     }

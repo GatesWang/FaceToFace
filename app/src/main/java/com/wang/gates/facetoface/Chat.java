@@ -1,6 +1,15 @@
 package com.wang.gates.facetoface;
 
 
+import android.support.annotation.NonNull;
+import android.util.Log;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import java.io.Serializable;
 import java.util.ArrayList;
 
@@ -31,9 +40,6 @@ public class Chat implements Serializable {
         return memberIds;
     }
 
-    public void setMemberIds(ArrayList<String> memberIds){
-        this.memberIds = memberIds;
-    }
     @Override
     public String toString() {
         return getChatName();

@@ -30,6 +30,7 @@ import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder> {
@@ -40,13 +41,9 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
     private AdapterMember adapter;
     private Chat chat;
     private Activity activity;
-    private ChatList chatList;
 
 
     private static final int CALL_REQUEST = 15;
-    // Provide a reference to the views for each data item
-    // Complex data items may need more than one view per item, and
-    // you provide access to all the view   s for a data item in a view holder
     public class ViewHolder extends RecyclerView.ViewHolder {
         // each data item is just a string in this case
         public TextView memberName;
@@ -77,18 +74,14 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
         notifyItemRangeChanged(position, memberNumbers.size());
     }
 
-
-    // Provide a suitable constructor (depends on the kind of dataset)
-    public AdapterMember(HashMap<String, String> memberNumbers, HashMap<String, String> members, Chat chat, ChatList chatList, Activity activity) {
+    public AdapterMember(HashMap<String, String> memberNumbers, HashMap<String, String> members, Chat chat, Activity activity) {
         this.memberNumbers = memberNumbers;
         this.members = members;
         this.chat = chat;
         this.adapter = this;
-        this.chatList = chatList;
         this.activity = activity;
     }
 
-    // Create new views (invoked by the layout manager)
     @Override
     public AdapterMember.ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // create a new view
@@ -98,7 +91,6 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
         return vh;
     }
 
-    //when clicked
     @Override
     public void onBindViewHolder(final ViewHolder holder, final int position) {
         // - get element from your dataset at this position
@@ -152,6 +144,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                         chatRef.child(member.getKey()).removeValue();
                         remove(position);
                         chat.getMemberIds().remove(id);
+                        //each time you remove a member check to see if you have to delete chat
                         deleteChat(id);
                     }
                 }
@@ -197,7 +190,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                 if(spId.equals(currentUserId) || count<2){
                     if(count<2){
                         Toast.makeText(activity, "Chats must have at least two people, this chat will be deleted", Toast.LENGTH_SHORT).show();
-                        //deletes from members
+                        //deletes from messages
                         messages.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -213,7 +206,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
 
                             }
                         });
-                        //deletes from messages
+                        //deletes from members
                         members.addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -222,6 +215,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                                         members.child(chatJson.getKey()).removeValue();
                                     }
                                 }
+                                ActivityChatList.getChats();
                             }
 
                             @Override
@@ -234,10 +228,7 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
                             @Override
                             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                                 for(DataSnapshot event: dataSnapshot.getChildren()){
-                                    Log.d(">>>", chat.getChatKey());
-                                    Log.d(">>>", event.child("chat").child("chatKey").getValue().toString());
-
-                                    if(event.child("chat").child("chatKey").getValue().equals(chat.getChatKey())){
+                                    if(event.child("chatKey").getValue().equals(chat.getChatKey())){
                                         event.getRef().setValue(null);
                                     }
                                 }
@@ -265,7 +256,6 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
             }
         });
 
-
     }
 
     private void callPhoneNumber(String number) {
@@ -289,10 +279,10 @@ public class AdapterMember extends RecyclerView.Adapter<AdapterMember.ViewHolder
         }
     }
     private void restart(){
-        activity.finish();
         SharedPreferences pref = activity.getSharedPreferences("MyPref", 0);
         SharedPreferences.Editor editor = pref.edit();
         editor.putBoolean("chatDeleted",true);
         editor.commit();
+        activity.finish();
     }
 }
