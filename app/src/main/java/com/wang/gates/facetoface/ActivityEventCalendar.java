@@ -10,10 +10,13 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CalendarView;
+import android.widget.PopupMenu;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -27,6 +30,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 
 
 public class ActivityEventCalendar extends AppCompatActivity {
@@ -45,18 +49,22 @@ public class ActivityEventCalendar extends AppCompatActivity {
 
     private static String patternDate = "yyyy-MM-dd";
     public static long dateLong;
+    private HashMap<MenuItem, Integer> mapMenuItemIndex;
+    //<key, index>
 
-    private void getInfo(){
+    private Menu mainMenu;
+
+    private void getInfo() {
         Bundle bundle = getIntent().getExtras();
-        if(bundle!=null){
-            if(bundle.get("chat")!=null){
+        if (bundle != null) {
+            if (bundle.get("chat") != null) {
                 //particular
                 chat = (Chat) bundle.getSerializable("chat");
             }
-            if(bundle.get("user")!=null){
+            if (bundle.get("user") != null) {
                 user = (User) getIntent().getExtras().get("user");
             }
-            if(bundle.get("chat")==null){
+            if (bundle.get("chat") == null) {
                 //general
                 chat = null;
                 //hide button to make new event
@@ -64,9 +72,10 @@ public class ActivityEventCalendar extends AppCompatActivity {
             }
         }
     }
-    private void goToEvent(){
+
+    private void goToEvent() {
         Intent eventIntent = new Intent(ActivityEventCalendar.this, ActivityEvent.class);
-        eventIntent.putExtra("eventKey","new");//this indicates that we are creating a new event
+        eventIntent.putExtra("eventKey", "new");//this indicates that we are creating a new event
         eventIntent.putExtra("dateLong", dateLong);
         eventIntent.putExtra("chat", chat);
         Bundle bundle = new Bundle();
@@ -75,10 +84,11 @@ public class ActivityEventCalendar extends AppCompatActivity {
         //start activity for result
         startActivity(eventIntent);
     }//this is for creating new evens only
-    public static void displayEventList(){
+
+    public static void displayEventList() {
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(dateLong);
-        calendarView.setDate(dateLong,true,true);
+        calendarView.setDate(dateLong, true, true);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
         String dateString = simpleDateFormat.format(date.getTime());
         final String toSearchFor = dateString;
@@ -89,18 +99,17 @@ public class ActivityEventCalendar extends AppCompatActivity {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
                 eventsArrayList.clear();
-                for(DataSnapshot event: dataSnapshot.getChildren()){
-                    if(event.child("date").getValue().toString().equals(toSearchFor)){
+                for (DataSnapshot event : dataSnapshot.getChildren()) {
+                    if (event.child("date").getValue().toString().equals(toSearchFor)) {
                         //make sure the chatKey matches
-                        if(chat==null){
+                        if (chat == null) {
                             DataSnapshot members = event.child("memberStatus");
-                            for(DataSnapshot member: members.getChildren()){
-                                if(member.getKey().equals(user.getId())){//make sure the user matches
+                            for (DataSnapshot member : members.getChildren()) {
+                                if (member.getKey().equals(user.getId())) {//make sure the user matches
                                     eventsArrayList.add((Event) event.getValue(Event.class));
                                 }
                             }
-                        }
-                        else if(chat!=null && event.child("chatKey").getValue().toString().equals(chat.getChatKey())){
+                        } else if (chat != null && event.child("chatKey").getValue().toString().equals(chat.getChatKey())) {
                             eventsArrayList.add(event.getValue(Event.class));
                         }
                     }
@@ -139,7 +148,7 @@ public class ActivityEventCalendar extends AppCompatActivity {
             @Override
             public void onSelectedDayChange(CalendarView view, int year, int month, int day) {
                 Calendar calendar = Calendar.getInstance();
-                calendar.set(year, month , day, 0, 0);
+                calendar.set(year, month, day, 0, 0);
                 dateLong = calendar.getTimeInMillis();
                 displayEventList();
             }
@@ -155,12 +164,7 @@ public class ActivityEventCalendar extends AppCompatActivity {
         getInfo();
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        if(chat!=null){
-            getSupportActionBar().setTitle(chat.getChatName() + " calendar");
-        }
-        else{
-            getSupportActionBar().setTitle("calendar all chats");
-        }
+        getSupportActionBar().setTitle("Calendar");
     }
 
     @Override
@@ -175,16 +179,46 @@ public class ActivityEventCalendar extends AppCompatActivity {
         activity = null;
     }
 
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.calendar_menu, menu);
+        mainMenu = menu;
+        int menuItemId = 0;
+        menu.findItem(R.id.selected_chat_name).getSubMenu().add(Menu.NONE, menuItemId, Menu.NONE, "All chats");
+        mapMenuItemIndex = new HashMap<>();
+        for(Chat chat: ActivityChatList.chatsArrayList){
+            MenuItem menuItem = menu.findItem(R.id.selected_chat_name).getSubMenu().add(Menu.NONE, menuItemId, Menu.NONE, chat.getChatName());
+            mapMenuItemIndex.put(menuItem, menuItemId);
+            menuItemId++;
+        }
+        return true;
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle item selection
         switch (item.getItemId()) {
             case android.R.id.home:
                 finish();
                 return true;
-            default:
-                return super.onOptionsItemSelected(item);
         }
+        if(mapMenuItemIndex.keySet().contains(item)){//if item is contained
+            int index = mapMenuItemIndex.get(item);
+            chat = ActivityChatList.chatsArrayList.get(index);
+            newEventButton.setVisibility(View.VISIBLE);
+            mainMenu.findItem(R.id.selected_chat_name).setTitle(chat.getChatName());
+            displayEventList();
+            return true;
+        }
+        else if(item.getTitle().toString().equals("All chats")){
+            chat = null;
+            mainMenu.findItem(R.id.selected_chat_name).setTitle("All chats");
+            newEventButton.setVisibility(View.INVISIBLE);
+            displayEventList();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 }

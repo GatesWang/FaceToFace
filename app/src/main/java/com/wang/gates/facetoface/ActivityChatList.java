@@ -32,7 +32,7 @@ import java.util.ArrayList;
 public class ActivityChatList extends AppCompatActivity implements ActivityCompat.OnRequestPermissionsResultCallback{
     private static final int CREATE_ACCOUNT = 1;
     private static AdapterTitleContent chatsAdapter;
-    private static ArrayList<Chat> chatsArrayList;
+    public static ArrayList<Chat> chatsArrayList;
     private static RecyclerView chatsRecyclerView;
 
     private static Activity activity;
@@ -171,7 +171,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
     public ArrayList<Chat> getChatList(){
         return chatsArrayList;
     }
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

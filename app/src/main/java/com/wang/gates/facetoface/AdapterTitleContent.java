@@ -47,15 +47,25 @@ public class AdapterTitleContent extends RecyclerView.Adapter<AdapterTitleConten
 
         @Override
         public void onClick(View v) {
-            if(!values.isEmpty() && values.get(0) instanceof Chat){
-                Intent intent = new Intent(context, ActivityChat.class);
-                intent.putExtra("person", ((ActivityChatList)context).getPerson());
-                Chat chat = (Chat) values.get(getAdapterPosition());
-                intent.putExtra("chat", chat);
-                Bundle chatList = new Bundle();
-                chatList.putSerializable("chatList", ((ActivityChatList)context).getChatList());
-                intent.putExtras(chatList);
-                context.startActivity(intent);
+            if(!values.isEmpty()){
+                if(values.get(0) instanceof Chat){
+                    Intent intent = new Intent(context, ActivityChat.class);
+                    intent.putExtra("person", ((ActivityChatList)context).getPerson());
+                    Chat chat = (Chat) values.get(getAdapterPosition());
+                    intent.putExtra("chat", chat);
+                    Bundle chatList = new Bundle();
+                    chatList.putSerializable("chatList", ((ActivityChatList)context).getChatList());
+                    intent.putExtras(chatList);
+                    context.startActivity(intent);
+                }
+                else if(values.get(0) instanceof Event){
+                    Intent i = new Intent(context, ActivityEvent.class);
+                    Bundle bundle = new Bundle();
+                    Event event = (Event) values.get(getAdapterPosition());
+                    bundle.putSerializable("event", event);
+                    i.putExtras(bundle);
+                    context.startActivity(i);
+                }
             }
         }
     }
@@ -115,16 +125,6 @@ public class AdapterTitleContent extends RecyclerView.Adapter<AdapterTitleConten
             final Event event = (Event) values.get(position);
             holder.title.setText(event.getEventName());
             holder.content.setText(event.getTime());
-            holder.title.setOnClickListener(new OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent i = new Intent(holder.context, ActivityEvent.class);
-                    Bundle bundle = new Bundle();
-                    bundle.putSerializable("event", event);
-                    i.putExtras(bundle);
-                    holder.context.startActivity(i);
-                }
-            });
         }
 
         else if(object instanceof Chat){
