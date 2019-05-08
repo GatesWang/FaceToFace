@@ -162,7 +162,7 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         chatsAdapter = new AdapterTitleContent(chatsArrayList, activity);
         chatsRecyclerView.setAdapter(chatsAdapter);
     }
-    private void startService(){
+    public void startService(){
         startService(new Intent(this, ServiceNotification.class));
     }
     public User getPerson(){
@@ -190,7 +190,6 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
         SharedPreferences.Editor editor = pref.edit();
         editor.putString("id",person.getId());
         editor.commit();
-        startService();
     }
 
     @Override
@@ -204,6 +203,12 @@ public class ActivityChatList extends AppCompatActivity implements ActivityCompa
             editor.putBoolean("chatDeleted",false);
             editor.commit();
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        startService();
     }
 
     @Override

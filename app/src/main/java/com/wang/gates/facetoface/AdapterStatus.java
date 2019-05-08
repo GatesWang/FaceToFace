@@ -112,7 +112,6 @@ public class AdapterStatus extends RecyclerView.Adapter<AdapterStatus.ViewHolder
 
 
     public void updateFirebase(){
-        //send to firebase
         final DatabaseReference eventsRef = FirebaseDatabase.getInstance().getReference().child("events");
         //loop through all events to find the one
         eventsRef.addListenerForSingleValueEvent(new ValueEventListener() {

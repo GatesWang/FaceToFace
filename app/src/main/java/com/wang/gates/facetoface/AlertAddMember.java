@@ -95,7 +95,6 @@ public class AlertAddMember extends AlertCreateChat{
 
                             chatRef.setValue(chat);
                             activityChatSettings.getMembers();
-
                         }
                     }
 

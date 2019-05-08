@@ -1,5 +1,9 @@
 package com.wang.gates.facetoface;
 
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import android.content.Context;
@@ -8,6 +12,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -63,6 +68,29 @@ public class AdapterTitleContent extends RecyclerView.Adapter<AdapterTitleConten
     public AdapterTitleContent(List myDataset, Context context) {
         values = myDataset;
         this.context = context;
+
+        if(values.size()>0 && values.get(0) instanceof Event){
+            //sort the events
+            Collections.sort(myDataset, new Comparator<Event>() {
+                @Override
+                public int compare(Event lhs, Event rhs) {
+                    String patternTime = "hh:mm a";
+                    SimpleDateFormat sdf = new SimpleDateFormat(patternTime);
+                    try{
+                        Calendar left = Calendar.getInstance();
+                        Calendar right = Calendar.getInstance();
+                        left.setTime(sdf.parse(lhs.getTime()));
+                        right.setTime(sdf.parse(rhs.getTime()));
+                        return left.getTimeInMillis() < right.getTimeInMillis() ? -1 : left.getTimeInMillis() > right.getTimeInMillis() ? 1 : 0;
+                    }
+                    catch(Exception e){
+
+                    }
+                    return 0;
+                }
+            });
+            notifyDataSetChanged();
+        }
     }
 
     @Override
@@ -98,9 +126,11 @@ public class AdapterTitleContent extends RecyclerView.Adapter<AdapterTitleConten
                 }
             });
         }
+
         else if(object instanceof Chat){
             final Chat chat = (Chat) values.get(position);
             holder.title.setText(chat.getChatName());
+            holder.title.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
             DatabaseReference messages = FirebaseDatabase.getInstance().getReference().child("messages");
             messages.addListenerForSingleValueEvent(new ValueEventListener() {
                 @Override

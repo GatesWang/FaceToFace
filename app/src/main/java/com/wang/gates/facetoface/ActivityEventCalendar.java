@@ -1,8 +1,11 @@
 package com.wang.gates.facetoface;
 
+import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -21,6 +24,9 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Date;
 
 
 public class ActivityEventCalendar extends AppCompatActivity {
@@ -28,7 +34,7 @@ public class ActivityEventCalendar extends AppCompatActivity {
     private static Chat chat;
     private static User user;
 
-    private CalendarView calendarView;
+    public static CalendarView calendarView;
     private Button newEventButton;
 
     private static RecyclerView eventsRecyclerView;
@@ -37,9 +43,8 @@ public class ActivityEventCalendar extends AppCompatActivity {
     private static ArrayList<Event> eventsArrayList = new ArrayList<>();
     private static AppCompatActivity activity;
 
-    private static String patternTime = "hh:mm a";
     private static String patternDate = "yyyy-MM-dd";
-    private static long dateLong;
+    public static long dateLong;
 
     private void getInfo(){
         Bundle bundle = getIntent().getExtras();
@@ -50,7 +55,6 @@ public class ActivityEventCalendar extends AppCompatActivity {
             }
             if(bundle.get("user")!=null){
                 user = (User) getIntent().getExtras().get("user");
-                Log.d(">>>", "" + user.getId());
             }
             if(bundle.get("chat")==null){
                 //general
@@ -61,25 +65,26 @@ public class ActivityEventCalendar extends AppCompatActivity {
         }
     }
     private void goToEvent(){
-        Intent i = new Intent(ActivityEventCalendar.this, ActivityEvent.class);
-        i.putExtra("eventKey","new");//this indicates that we are creating a new event
-        i.putExtra("dateLong", dateLong);
-        i.putExtra("chat", chat);
+        Intent eventIntent = new Intent(ActivityEventCalendar.this, ActivityEvent.class);
+        eventIntent.putExtra("eventKey","new");//this indicates that we are creating a new event
+        eventIntent.putExtra("dateLong", dateLong);
+        eventIntent.putExtra("chat", chat);
         Bundle bundle = new Bundle();
         bundle.putSerializable("user", user);
-        i.putExtras(bundle);
+        eventIntent.putExtras(bundle);
         //start activity for result
-        startActivity(i);
-    }
+        startActivity(eventIntent);
+    }//this is for creating new evens only
     public static void displayEventList(){
         Calendar date = Calendar.getInstance();
         date.setTimeInMillis(dateLong);
+        calendarView.setDate(dateLong,true,true);
         SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
         String dateString = simpleDateFormat.format(date.getTime());
-        final String toSearchFor = "Event date: " + dateString;
+        final String toSearchFor = dateString;
 
         //populate with events with the date selected
-        DatabaseReference events = FirebaseDatabase.getInstance().getReference("events");
+        final DatabaseReference events = FirebaseDatabase.getInstance().getReference("events");
         events.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
@@ -98,9 +103,11 @@ public class ActivityEventCalendar extends AppCompatActivity {
                         else if(chat!=null && event.child("chatKey").getValue().toString().equals(chat.getChatKey())){
                             eventsArrayList.add(event.getValue(Event.class));
                         }
-
                     }
                 }
+                LinearLayoutManager layoutManager = new LinearLayoutManager(activity);
+                layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
+                eventsRecyclerView.setLayoutManager(layoutManager);
                 eventsAdapter = new AdapterTitleContent(eventsArrayList, activity);
                 eventsRecyclerView.setAdapter(eventsAdapter);
             }
@@ -144,9 +151,6 @@ public class ActivityEventCalendar extends AppCompatActivity {
                 goToEvent();
             }
         });
-
-
-
         dateLong = calendarView.getDate();
         getInfo();
 
@@ -157,17 +161,17 @@ public class ActivityEventCalendar extends AppCompatActivity {
         else{
             getSupportActionBar().setTitle("calendar all chats");
         }
-        displayEventList();
     }
+
     @Override
-    protected void onResume() {
-        super.onResume();
+    protected void onStart() {
+        super.onStart();
         displayEventList();
     }
 
     @Override
-    protected void onStop() {
-        super.onStop();
+    protected void onDestroy() {
+        super.onDestroy();
         activity = null;
     }
 
@@ -182,5 +186,6 @@ public class ActivityEventCalendar extends AppCompatActivity {
                 return super.onOptionsItemSelected(item);
         }
     }
+
 }
 

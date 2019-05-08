@@ -27,6 +27,8 @@
     <Button
         android:id="@+id/new_event"
         android:text="New Event"
+        android:background="@drawable/button_shape"
+        android:textColor="#FFFFFF"
         android:layout_width="match_parent"
         android:layout_margin="10dp"
         android:layout_height="wrap_content"

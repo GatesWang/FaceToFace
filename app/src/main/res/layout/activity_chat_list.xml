@@ -31,6 +31,8 @@
 
     <Button
         android:id="@+id/new_chat"
+        android:background="@drawable/button_shape"
+        android:textColor="#FFFFFF"
         android:text="New Chat"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

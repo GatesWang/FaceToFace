@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class ServiceNotification extends Service {
-    private boolean mRunning;
     private final static String CHANNEL_ID = "notification";
     private int notificationId = 0;
     private String id;
@@ -57,7 +56,6 @@ public class ServiceNotification extends Service {
 
         preferences = getApplicationContext().getSharedPreferences("MyPref",0);
         editor = preferences.edit();
-        mRunning = false;
 
     }
     @Override
@@ -67,11 +65,7 @@ public class ServiceNotification extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         //Toast.makeText(this, "On start", Toast.LENGTH_SHORT).show();
-        if (!mRunning) {
-            mRunning = true;
-            getChatKeys();
-
-        }
+        getChatKeys();
         return START_STICKY;
     }
     private void getChatKeys() {
@@ -136,6 +130,7 @@ public class ServiceNotification extends Service {
                 ChildEventListener listener = new ChildEventListener() {
                     @Override
                     public void onChildAdded(@NonNull DataSnapshot dataSnapshot, @Nullable String s) {
+
                     }
 
                     @Override

@@ -44,4 +44,12 @@
         <item name="android:textSize">36sp</item>
     </style>
 
+    <style name="Theme.Good" parent="Base.Theme.AppCompat.Light.Dialog">
+        <item name="android:textColor">@color/colorPrimaryDark</item>
+    </style>
+
+
+    android:background="@drawable/button_shape"
+    android:textColor="#FFFFFF"
+
 </resources>

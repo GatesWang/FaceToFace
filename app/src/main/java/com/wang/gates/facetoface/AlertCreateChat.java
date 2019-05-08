@@ -63,7 +63,7 @@ public class AlertCreateChat {
             ((Activity) context).requestPermissions(new String[]{Manifest.permission.READ_CONTACTS}, PERMISSIONS_REQUEST_READ_CONTACTS);
         }
         this.context = context;
-        builder = new AlertDialog.Builder(context);
+        builder = new AlertDialog.Builder(context, R.style.Theme_Good);
         builder.setTitle("New Chat");
 
         final LinearLayout layout = new LinearLayout(context);
@@ -92,9 +92,8 @@ public class AlertCreateChat {
         setUpPositive();
         setUpNegative();
         builder.setView(layout);
-
-
     }
+
     protected void setItemClick(){
         members = new ArrayList<>();
         adapterNewChatMember = new AdapterNewChatMember(members, context);
@@ -199,6 +198,10 @@ public class AlertCreateChat {
 
                             //update chat list
                             ((ActivityChatList)context).getChats();
+
+                            //update notifications service
+                            ((ActivityChatList)context).startService();
+
                         }
                         @Override
                         public void onCancelled(@NonNull DatabaseError databaseError) {

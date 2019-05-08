@@ -2,6 +2,7 @@ package com.wang.gates.facetoface;
 
 import android.app.Activity;
 import android.app.AlarmManager;
+import android.app.DatePickerDialog;
 import android.app.PendingIntent;
 import android.app.TimePickerDialog;
 import android.content.Context;
@@ -18,12 +19,14 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import com.google.common.escape.Escaper;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -64,7 +67,7 @@ public class ActivityEvent extends AppCompatActivity {
     private String id;
     private DatabaseReference eventFirebase;
     private String[] onOff;
-
+    private boolean creatingNewChat;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,13 +99,56 @@ public class ActivityEvent extends AppCompatActivity {
                         Calendar calendar = Calendar.getInstance();
                         calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                         calendar.set(Calendar.MINUTE, minute);
-                        String patternTime = "hh:mm a";
                         SimpleDateFormat simpleDateFormatTime = new SimpleDateFormat(patternTime);
                         String timeString = simpleDateFormatTime.format(calendar.getTime());
-                        eventTimeView.setText("Event time: " + timeString);
+                        eventTimeView.setText(timeString);
                     }
                 }, 12, 00, false);
-                timePickerDialog.show();
+                Calendar time = Calendar.getInstance();
+                SimpleDateFormat sdf = new SimpleDateFormat(patternTime);
+                Date date = null;
+                try {
+                    date = sdf.parse(eventTimeView.getText().toString());
+                    time.setTime(date);
+                    timePickerDialog.updateTime(time.get(Calendar.HOUR_OF_DAY), time.get(Calendar.MINUTE));
+                    timePickerDialog.show();
+
+                }
+                catch (Exception e){
+                    Log.d(">>>",e.toString());
+                }
+            }
+        });
+
+
+        eventDateView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DatePickerDialog.OnDateSetListener datePickerListener = new DatePickerDialog.OnDateSetListener() {
+                    @Override
+                    public void onDateSet(DatePicker view, int selectYear, int selectMonth, int selectDay) {
+                        Calendar calendar = Calendar.getInstance();
+                        calendar.set(Calendar.YEAR, selectYear);
+                        calendar.set(Calendar.MONTH, selectMonth);
+                        calendar.set(Calendar.DAY_OF_MONTH, selectDay);
+
+                        SimpleDateFormat simpleDateFormatTime = new SimpleDateFormat(patternDate);
+                        String timeString = simpleDateFormatTime.format(calendar.getTime());
+                        eventDateView.setText(timeString);
+                    }
+                };
+                Calendar calendar = Calendar.getInstance();
+                SimpleDateFormat sdf = new SimpleDateFormat(patternDate);
+                Date date = null;
+                try{
+                    date = sdf.parse(eventDateView.getText().toString());
+                    calendar.setTime(date);
+                    DatePickerDialog datePickerDialog = new DatePickerDialog(ActivityEvent.this, datePickerListener, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+                    datePickerDialog.show();
+                }
+                catch(Exception e){
+
+                }
             }
         });
 
@@ -177,6 +223,7 @@ public class ActivityEvent extends AppCompatActivity {
     private void getInfo(){
         Intent i = getIntent();
         if(i.getSerializableExtra("event") != null){//the event already exists
+            creatingNewChat = false;
             event = (Event)i.getSerializableExtra("event");
             //get reference to chat object
             final String chatKey = event.getChatKey();
@@ -201,6 +248,7 @@ public class ActivityEvent extends AppCompatActivity {
             eventKey = event.getEventKey();
         }
         else{//event doesnt exist yet
+            creatingNewChat = true;
             chat = (Chat) i.getSerializableExtra("chat");
             dateLong = i.getLongExtra("dateLong", 0);
             eventKey = i.getStringExtra("eventKey");
@@ -221,14 +269,14 @@ public class ActivityEvent extends AppCompatActivity {
             date.setTimeInMillis(dateLong);
             SimpleDateFormat simpleDateFormat = new SimpleDateFormat(patternDate);
             String dateString = simpleDateFormat.format(date.getTime());
-            eventDateView.setText("Event date: " + dateString);
+            eventDateView.setText(dateString);
 
             if(eventKey.equals("new")){//new event
                 //time
                 time = Calendar.getInstance();
                 SimpleDateFormat simpleDateFormatTime = new SimpleDateFormat(patternTime);
                 String timeString = simpleDateFormatTime.format(time.getTime());
-                eventTimeView.setText("Event time: " + timeString);
+                eventTimeView.setText(timeString);
                 //name
                 eventNameView.setText("New event");
             }
@@ -239,13 +287,11 @@ public class ActivityEvent extends AppCompatActivity {
         String eventName = eventNameView.getText().toString().trim();
         String dateString = eventDateView.getText().toString();
         String timeString = eventTimeView.getText().toString();
-        String dateSubstring = dateString.substring(12);
-        String timeSubstring = timeString.substring(12);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm a");
         Calendar cal = Calendar.getInstance();
         try{
-            Date date = sdf.parse(dateSubstring+ " " + timeSubstring);
+            Date date = sdf.parse(dateString+ " " + timeString);
             cal.setTime(date);
         }
         catch (Exception e){
@@ -264,8 +310,20 @@ public class ActivityEvent extends AppCompatActivity {
                         for(DataSnapshot e : dataSnapshot.getChildren()){
                             if(e.child("eventKey").getValue().toString().equals(event.getEventKey())){
                                 database.child(e.getKey()).setValue(event);
-                                ActivityEventCalendar.displayEventList();
-                                finish();
+                                Calendar cal = Calendar.getInstance();
+                                SimpleDateFormat sdf = new SimpleDateFormat(patternDate);
+                                try {
+                                    Date date = sdf.parse(eventDateView.getText().toString());
+                                    cal.setTime(date);
+                                    ActivityEventCalendar.dateLong = cal.getTimeInMillis();
+                                    if(ActivityEventCalendar.dateLong == cal.getTimeInMillis()){
+                                        ActivityEventCalendar.displayEventList();
+                                        finish();
+                                    }
+                                }
+                                catch(Exception exception){
+
+                                }
                             }
                         }
                     }
@@ -319,9 +377,14 @@ public class ActivityEvent extends AppCompatActivity {
                 intent.putExtra("title", event.getEventName());
                 startActivity(intent);
             }
-            statusAdapter.updateFirebase();
-            ActivityEventCalendar.displayEventList();
-            finish();
+            if(!creatingNewChat){
+                statusAdapter.updateFirebase();
+            }
+            ActivityEventCalendar.dateLong = cal.getTimeInMillis();
+            if(ActivityEventCalendar.dateLong == cal.getTimeInMillis()){
+                ActivityEventCalendar.displayEventList();
+                finish();
+            }
         }
         else{
             Toast.makeText(this, "Event name is invalid", Toast.LENGTH_SHORT).show();
@@ -338,7 +401,6 @@ public class ActivityEvent extends AppCompatActivity {
                             database.child(e.getKey()).setValue(null);
                         }
                     }
-                    ActivityEventCalendar.displayEventList();
                     finish();
                 }
 
@@ -349,7 +411,6 @@ public class ActivityEvent extends AppCompatActivity {
             });
         }
         else{
-            ActivityEventCalendar.displayEventList();
             finish();
         }
     }
