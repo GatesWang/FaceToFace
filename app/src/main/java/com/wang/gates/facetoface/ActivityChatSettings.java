@@ -35,61 +35,27 @@ public class ActivityChatSettings extends AppCompatActivity implements  View.OnC
     private Chat chat;
 
     private Button renameChat;
+    private Button addMemberButton;
 
     private ArrayList<String> memberIds = new ArrayList<>();
-    private HashMap<String, String> idToName = new HashMap<String, String>();
+    private HashMap<String, String> idToName = new HashMap<>();
+    //stores <Id, Name>
+    private HashMap<String, String> memberNumbers = new HashMap<>();
+    //stores <Name, Number>
 
-    private Button addMemberButton;
     private RecyclerView memberRecyclerView;
     private LinearLayoutManager layoutManager = new LinearLayoutManager(ActivityChatSettings.this);
-    private HashMap<String, String> memberNumbers = new HashMap<>();
     private AdapterMember adapterMember;
-    //stores <Name, Number>
     private AlertAddMember addMember;
 
     private ArrayList<Chat> chatsArrayList;
     private String newName;
-
-    private AdapterNewChatMember adapterNewChatMember;
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_chat_settings);
-
-        getInfo();
-        adapterMember = new AdapterMember(memberNumbers, idToName, chat, ActivityChatSettings.this);
-        setUpNotifications();
-
-        renameChat = findViewById(R.id.chat_rename);
-        memberRecyclerView = findViewById(R.id.members_list);
-        addMemberButton = findViewById(R.id.add_member);
-
-        renameChat.setOnClickListener(this);
-        addMemberButton.setOnClickListener(this);
-        getMembers();
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle(chat.getChatName() + " settings");
-    }
-
-    @Override
-    public void onClick(View v) {
-        switch(v.getId()){
-            case R.id.chat_rename:
-                renameChat();
-                break;
-            case R.id.add_member:
-                addMember();
-                break;
-        }
-    }
 
     private void getInfo(){
         Intent i = getIntent();
         chat = (Chat) i.getSerializableExtra("chat");
         chatsArrayList =  (ArrayList<Chat>) i.getExtras().get("chatsArrayList");
     }
-
     private void renameChat(){
         final AlertDialog.Builder builder = new AlertDialog.Builder(ActivityChatSettings.this);
         builder.setTitle("Rename chat");
@@ -186,7 +152,12 @@ public class ActivityChatSettings extends AppCompatActivity implements  View.OnC
         }
         return index;
     }
+    private void addMember(){
+        addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
+        addMember.getBuilder().show();
+    }
     public void getMembers(){
+        memberIds = new ArrayList<>();
         DatabaseReference chatRef = FirebaseDatabase.getInstance().getReference().child("members").child(chat.getChatKey()).child("memberIds");
         chatRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
@@ -194,6 +165,7 @@ public class ActivityChatSettings extends AppCompatActivity implements  View.OnC
                 for(DataSnapshot member: dataSnapshot.getChildren()){
                     memberIds.add(member.getValue().toString());
                 }
+                Log.d(">>>", "" + memberIds);
             }
 
             @Override
@@ -226,9 +198,38 @@ public class ActivityChatSettings extends AppCompatActivity implements  View.OnC
         adapterMember = new AdapterMember(memberNumbers, idToName, chat, ActivityChatSettings.this);
         memberRecyclerView.setAdapter(adapterMember);
     }
-    private void addMember(){
-        addMember = new AlertAddMember(ActivityChatSettings.this, chat, this);
-        addMember.getBuilder().show();
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_chat_settings);
+
+        getInfo();
+        adapterMember = new AdapterMember(memberNumbers, idToName, chat, ActivityChatSettings.this);
+        setUpNotifications();
+
+        renameChat = findViewById(R.id.chat_rename);
+        memberRecyclerView = findViewById(R.id.members_list);
+        addMemberButton = findViewById(R.id.add_member);
+
+        renameChat.setOnClickListener(this);
+        addMemberButton.setOnClickListener(this);
+        getMembers();
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setTitle(chat.getChatName() + " settings");
+    }
+    @Override
+    public void onClick(View v) {
+        switch(v.getId()){
+            case R.id.chat_rename:
+                renameChat();
+                break;
+            case R.id.add_member:
+                addMember();
+                break;
+        }
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

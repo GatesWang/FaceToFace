@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.support.annotation.NonNull;
 import android.text.InputType;
+import android.util.Log;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
@@ -61,7 +62,8 @@ public class AlertAddMember extends AlertCreateChat{
                 databaseUsers.addListenerForSingleValueEvent(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
-                            ArrayList<String> memberIds = new ArrayList<>();
+                        ArrayList<String> memberIds = new ArrayList<>();
+                        Log.d(">>>", members + "");
                         for (int i = 0; i < members.size(); i++) {
                             String member = members.get(i);
                             String[] memberInfo = member.split("\\s+");
